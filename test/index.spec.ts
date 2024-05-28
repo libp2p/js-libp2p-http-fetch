@@ -2,7 +2,7 @@
 
 import { defaultLogger } from '@libp2p/logger'
 // @ts-expect-error missing types
-import { milo } from '@perseveranza-pets/milo/index-with-wasm'
+import { milo } from '@perseveranza-pets/milo/index-with-wasm.js'
 import { stubInterface, type StubbedInstance } from 'sinon-ts'
 import type { ComponentLogger } from '@libp2p/interface'
 import type { ConnectionManager, Registrar } from '@libp2p/interface-internal'
@@ -36,9 +36,6 @@ describe('whatwg-fetch', () => {
     const ptr = milo.alloc(message.length)
 
     // Create a buffer we can use normally.
-    const f = milo
-    // eslint-disable-next-line no-console
-    console.log(f)
     const buffer = new Uint8Array(milo.memory.buffer, ptr, message.length)
 
     // Create the parser.

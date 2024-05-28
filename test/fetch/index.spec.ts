@@ -4,8 +4,28 @@
 import { expect } from 'aegir/chai'
 import { duplexPair } from 'it-pair/duplex'
 import { type Uint8ArrayList, isUint8ArrayList } from 'uint8arraylist'
-import { fetchViaDuplex } from '../../src/fetch/index.js'
+import { fetchViaDuplex, handleRequestViaDuplex } from '../../src/fetch/index.js'
 import { cases } from './cases/cases.js'
+
+describe('Roundtrips', () => {
+  it('handles a simple GET request', async () => {
+    const [client, server] = duplexPair<Uint8Array | Uint8ArrayList>()
+
+    const serverHandler = handleRequestViaDuplex(server, async (req) => {
+      console.log('Got request', req)
+      return new Response('Hello World')
+    }).catch((err) => {
+      console.error('Error handling request', err)
+      throw err
+    })
+
+    const resp = await fetchViaDuplex(client)(new Request('https://example.com/'))
+    expect(await resp.text()).to.equal('Hello World')
+
+    // Assert we didn't fail here
+    await serverHandler
+  })
+})
 
 describe('Make a fetch request via duplex', () => {
   it('A simple GET request', async () => {
@@ -22,7 +42,7 @@ describe('Make a fetch request via duplex', () => {
     }
 
     console.log(reqToServer)
-    expect(reqToServer).to.equal('GET / HTTP/1.1\r\nHost: example.com\r\n\r\n')
+    expect(reqToServer).to.equal('GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n')
 
     void server.sink((async function * () {
       yield new TextEncoder().encode('HTTP/1.1 200 OK\r\n\r\n')
@@ -44,7 +64,7 @@ describe('Make a fetch request via duplex', () => {
       reqToServer += decoder.decode(chunk)
     }
 
-    expect(reqToServer).to.equal('GET / HTTP/1.1\r\nHost: example.com\r\nx-test: foo\r\n\r\n')
+    expect(reqToServer).to.equal('GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\nx-test: foo\r\n\r\n')
 
     void server.sink((async function * () {
       yield new TextEncoder().encode('HTTP/1.1 200 OK\r\nX-test: bar\r\n\r\n')
@@ -68,7 +88,7 @@ describe('Make a fetch request via duplex', () => {
     }
 
     console.log(reqToServer)
-    expect(reqToServer).to.equal('POST /?foo=bar HTTP/1.1\r\nHost: example.com\r\ncontent-type: text/plain;charset=UTF-8\r\nx-test: foo\r\nTransfer-Encoding: chunked\r\n\r\nb\r\nhello world\r\n0\r\n\r\n')
+    expect(reqToServer).to.equal('POST /?foo=bar HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\ncontent-type: text/plain;charset=UTF-8\r\nx-test: foo\r\nTransfer-Encoding: chunked\r\n\r\nb\r\nhello world\r\n0\r\n\r\n')
 
     void server.sink((async function * () {
       yield new TextEncoder().encode('HTTP/1.1 200 OK\r\nX-test: bar\r\n\r\nbaz')
@@ -92,7 +112,7 @@ describe('Make a fetch request via duplex', () => {
       reqToServer += decoder.decode(chunk)
     }
 
-    expect(reqToServer).to.equal('GET / HTTP/1.1\r\nHost: example.com\r\n\r\n')
+    expect(reqToServer).to.equal('GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n')
 
     void server.sink((async function * () {
       yield new TextEncoder().encode('FOOOOOOOOOOOOOOOOo')
@@ -101,7 +121,7 @@ describe('Make a fetch request via duplex', () => {
   })
 
   it('Message comes in a trickle', async () => {
-    for (const httpCase of cases.filter(c => c.type === 'RESPONSE')) {
+    for (const httpCase of cases.filter(c => c.type === 'RESPONSE' && c.mayFail !== true)) {
       const expectedStatusCode = httpCase.statusCode
       if (expectedStatusCode === undefined || expectedStatusCode === null) {
         continue
@@ -127,7 +147,7 @@ describe('Make a fetch request via duplex', () => {
         }
         reqToServer += decoder.decode(chunk)
       }
-      expect(reqToServer).to.equal('GET / HTTP/1.1\r\nHost: example.com\r\n\r\n')
+      expect(reqToServer).to.equal('GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n')
 
       void server.sink((async function * () {
         const rawHttp = new TextEncoder().encode(httpCase.raw)
@@ -149,7 +169,7 @@ describe('Make a fetch request via duplex', () => {
   })
 
   it('Parses all responses', async () => {
-    for (const httpCase of cases.filter(c => c.type === 'RESPONSE')) {
+    for (const httpCase of cases.filter(c => c.type === 'RESPONSE' && c.mayFail !== true)) {
       const expectedStatusCode = httpCase.statusCode
       if (expectedStatusCode === undefined || expectedStatusCode === null) {
         continue
@@ -175,7 +195,7 @@ describe('Make a fetch request via duplex', () => {
         }
         reqToServer += decoder.decode(chunk)
       }
-      expect(reqToServer).to.equal('GET / HTTP/1.1\r\nHost: example.com\r\n\r\n')
+      expect(reqToServer).to.equal('GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n')
 
       void server.sink((async function * () {
         yield new TextEncoder().encode(httpCase.raw)

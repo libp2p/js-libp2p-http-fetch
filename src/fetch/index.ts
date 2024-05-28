@@ -1,7 +1,10 @@
 /* eslint-disable max-depth */
 /* eslint-disable complexity */
 
-import { type Uint8ArrayList, isUint8ArrayList } from 'uint8arraylist'
+// @ts-expect-error missing types
+import { milo } from '@perseveranza-pets/milo/index-with-wasm.js'
+import defer from 'p-defer'
+import { Uint8ArrayList, isUint8ArrayList } from 'uint8arraylist'
 interface Fetch { (req: Request): Promise<Response> }
 
 interface Duplex<TSource, TSink = TSource, RSink = Promise<void>> {
@@ -12,33 +15,177 @@ interface Duplex<TSource, TSink = TSource, RSink = Promise<void>> {
 export function fetchViaDuplex (s: Duplex<Uint8Array | Uint8ArrayList>): Fetch {
   return async (req) => {
     await writeRequestToDuplex(s, req)
-    const stream = new ReadableStream<Uint8Array>({
-      async start (controller) {
+    const [respP] = readHTTPMsg(false, s)
+    const resp = await respP
+    if (!(resp instanceof Response)) {
+      throw new Error('Expected a response')
+    }
+    return resp
+  }
+}
+
+export interface HTTPHandler { (req: Request): Promise<Response> }
+
+export async function handleRequestViaDuplex (s: Duplex<Uint8Array | Uint8ArrayList>, h: HTTPHandler): Promise<void> {
+  const [reqP] = readHTTPMsg(true, s)
+  const req = await reqP
+  if (!(req instanceof Request)) {
+    throw new Error('Expected a request')
+  }
+
+  const resp = await h(req)
+  await writeResponseToDuplex(s, resp)
+}
+
+const BUFFER_SIZE = 16 << 10
+
+export function readHTTPMsg (expectRequest: boolean, r: Duplex<Uint8Array | Uint8ArrayList>): [Promise<Request | Response>, Promise<void>] {
+  const msgPromise = defer<Request | Response>()
+
+  return [
+    msgPromise.promise,
+    (async () => {
+      const textDecoder = new TextDecoder()
+      const ptr = milo.alloc(BUFFER_SIZE)
+
+      const parser = milo.create()
+      // Simplifies implementation at the cost of storing data twice
+      milo.setManageUnconsumed(parser, true)
+
+      const bodyStreamControllerPromise = defer <ReadableStreamController<Uint8Array>>()
+      const body = new ReadableStream<Uint8Array>({
+        async start (controller) {
+          bodyStreamControllerPromise.resolve(controller)
+        }
+      })
+      const bodyStreamController = await bodyStreamControllerPromise.promise
+
+      // Handle start line
+
+      // Response
+      let status = ''
+      let reason = ''
+      let fulfilledMsgPromise = false
+
+      // Requests
+      let url = ''
+      let method = ''
+      milo.setOnStatus(parser, (_: unknown, from: number, size: number) => {
+        status = textDecoder.decode(unconsumedChunks.subarray(from, from + size))
+      })
+      milo.setOnReason(parser, (_: unknown, from: number, size: number) => {
+        reason = textDecoder.decode(unconsumedChunks.subarray(from, from + size))
+      })
+      milo.setOnUrl(parser, (_: unknown, from: number, size: number) => {
+        url = textDecoder.decode(unconsumedChunks.subarray(from, from + size))
+      })
+      milo.setOnMethod(parser, (_: unknown, from: number, size: number) => {
+        method = textDecoder.decode(unconsumedChunks.subarray(from, from + size))
+      })
+
+      milo.setOnRequest(parser, () => {
+        if (!expectRequest) {
+          msgPromise.reject(new Error('Received request instead of response'))
+          fulfilledMsgPromise = true
+        }
+      })
+      milo.setOnResponse(parser, () => {
+        if (expectRequest) {
+          msgPromise.reject(new Error('Received response instead of request'))
+          fulfilledMsgPromise = true
+        }
+      })
+
+      // Handle the headers
+      const headers = new Headers()
+      let lastHeaderName: string = ''
+
+      milo.setOnHeaderName(parser, (_: unknown, from: number, size: number) => {
+        lastHeaderName = textDecoder.decode(unconsumedChunks.subarray(from, from + size))
+      })
+      milo.setOnHeaderValue(parser, (_: unknown, from: number, size: number) => {
+        const headerVal = textDecoder.decode(unconsumedChunks.subarray(from, from + size))
+        headers.set(lastHeaderName, headerVal)
+      })
+      milo.setOnHeaders(parser, (_: unknown, from: number, size: number) => {
+        // Headers are parsed. We can return the response
         try {
-          for await (const chunk of s.source) {
-            if (isUint8ArrayList(chunk)) {
-              for (const c of chunk) {
-                controller.enqueue(c)
-              }
-            } else {
-              controller.enqueue(chunk)
+          if (expectRequest) {
+            let reqBody: ReadableStream<Uint8Array> | null = body
+            if (method === 'GET') {
+              reqBody = null
             }
+
+            const urlWithHost = `https://${headers.get('Host') ?? ''}${url}`
+            const req = new Request(urlWithHost, {
+              method,
+              body: reqBody,
+              headers
+            })
+            msgPromise.resolve(req)
+            fulfilledMsgPromise = true
+          } else {
+            let respBody: ReadableStream<Uint8Array> | null = body
+            if (status === '204') {
+              respBody = null
+            }
+            const resp = new Response(respBody, {
+              headers,
+              status: parseInt(status),
+              statusText: reason
+            })
+            msgPromise.resolve(resp)
+            fulfilledMsgPromise = true
           }
-          controller.close()
         } catch (error) {
-          controller.error(error)
+          msgPromise.reject(error)
+        }
+      })
+
+      // Handle the body
+      milo.setOnData(parser, (_: unknown, from: number, size: number) => {
+        const c: Uint8Array = unconsumedChunks.subarray(from, from + size)
+        // @ts-expect-error Unclear why this fails. TODO debug
+        bodyStreamController.enqueue(c)
+      })
+      // milo.setOnBody(parser, () => {})
+      milo.setOnError(parser, () => {
+        bodyStreamController.error(new Error('Error parsing HTTP message'))
+      })
+
+      let messageComplete = false
+      milo.setOnMessageComplete(parser, () => {
+        bodyStreamController.close()
+        messageComplete = true
+      })
+
+      // Consume data
+      const unconsumedChunks = new Uint8ArrayList()
+      for await (let chunks of r.source) {
+        if (!isUint8ArrayList(chunks)) {
+          chunks = new Uint8ArrayList(chunks)
+        }
+        for (const chunk of chunks) {
+          unconsumedChunks.append(chunk)
+          const buffer = new Uint8Array(milo.memory.buffer, ptr, BUFFER_SIZE)
+          buffer.set(chunk, 0)
+          const consumed = milo.parse(parser, ptr, chunk.length)
+          unconsumedChunks.consume(consumed)
         }
       }
-    })
+      milo.finish(parser)
 
-    const h = new HttpParser()
-    const r = await h.parse(stream)
-    return new Response((h.status === 204 || h.status === 205 || h.status === 304) ? null : r, {
-      status: h.status,
-      statusText: h.statusText,
-      headers: h.headers
-    })
-  }
+      if (!messageComplete) {
+        bodyStreamController.error(new Error('Incomplete HTTP message'))
+        if (!fulfilledMsgPromise) {
+          msgPromise.reject(new Error('Incomplete HTTP message'))
+        }
+      }
+
+      milo.destroy(parser)
+      milo.dealloc(ptr, BUFFER_SIZE)
+    })()
+  ]
 }
 
 const CRLF = '\r\n'
@@ -57,14 +204,33 @@ async function writeRequestToDuplex (s: Duplex<unknown, Uint8Array>, request: Re
   if (!headers.has('Host')) {
     httpRequest += `Host: ${url.host}${CRLF}`
   }
+  // Add connection close
+  if (!headers.has('Connection')) {
+    httpRequest += `Connection: close${CRLF}`
+  }
 
   headers.forEach((value, name) => {
     httpRequest += `${name}: ${value}${CRLF}`
   })
 
-  const requestIncludesAndNeedsContentLength = headers.has('Content-Length') && (method === 'POST' || method === 'PUT' || method === 'PATCH')
+  const requestIncludesContentAndNeedsContentLength = headers.has('Content-Length') && (method === 'POST' || method === 'PUT' || method === 'PATCH')
 
-  if (!requestIncludesAndNeedsContentLength && request.body !== null) {
+  let reqBody = request.body
+  if (request.body === undefined && typeof request.arrayBuffer === 'function') {
+    const body = await request.arrayBuffer()
+    if (body.byteLength > 0) {
+      reqBody = new ReadableStream<Uint8Array>({
+        start (controller) {
+          controller.enqueue(new Uint8Array(body))
+          controller.close()
+        }
+      })
+    } else {
+      reqBody = null
+    }
+  }
+
+  if (!requestIncludesContentAndNeedsContentLength && reqBody !== null) {
     // If we don't have the content length, we need to use chunked encoding
     httpRequest += `Transfer-Encoding: chunked${CRLF}`
   }
@@ -75,11 +241,11 @@ async function writeRequestToDuplex (s: Duplex<unknown, Uint8Array>, request: Re
     const httpRequestBuffer = new TextEncoder().encode(httpRequest)
     yield httpRequestBuffer
 
-    if (request.body === null) {
+    if (reqBody === null || reqBody === undefined) {
       return
     }
 
-    const reader = request.body.getReader()
+    const reader = reqBody.getReader()
     try {
       while (true) {
         const { done, value } = await reader.read()
@@ -90,7 +256,7 @@ async function writeRequestToDuplex (s: Duplex<unknown, Uint8Array>, request: Re
         }
 
         // add the chunk length
-        if (!requestIncludesAndNeedsContentLength) {
+        if (!requestIncludesContentAndNeedsContentLength) {
           const chunkLength = value.byteLength.toString(16)
           const chunkLengthBuffer = new TextEncoder().encode(`${chunkLength}${CRLF}`)
           yield chunkLengthBuffer
@@ -98,7 +264,7 @@ async function writeRequestToDuplex (s: Duplex<unknown, Uint8Array>, request: Re
 
         yield value
 
-        if (!requestIncludesAndNeedsContentLength) {
+        if (!requestIncludesContentAndNeedsContentLength) {
           yield encodedCRLF
         }
       }
@@ -108,174 +274,36 @@ async function writeRequestToDuplex (s: Duplex<unknown, Uint8Array>, request: Re
   })())
 }
 
-enum DecodingState {
-  readingSize,
-  readingBody,
-  readingCRLF,
-}
+async function writeResponseToDuplex (s: Duplex<unknown, Uint8Array>, resp: Response): Promise<void> {
+  await s.sink((async function * () {
+    const textEncoder = new TextEncoder()
+    const status = resp.status
+    const reason = resp.statusText
+    const headers = resp.headers
 
-class MaybeChunkedDecoder extends TransformStream<Uint8Array, Uint8Array> {
-  private isChunked = false
-  private remaining = 0
-  private state: DecodingState = DecodingState.readingSize
-  private chunkSizeBuffer = ''
-  private readonly decoder = new TextDecoder()
-  private readonly encoder = new TextEncoder()
+    let httpRequest = `HTTP/1.1 ${status} ${reason}${CRLF}`
 
-  setIsChunked (): void {
-    this.isChunked = true
-  }
-
-  constructor () {
-    super({
-      transform: (inputChunk, controller) => {
-        if (!this.isChunked) {
-          controller.enqueue(inputChunk)
-          return
-        }
-
-        let inputOffset = 0
-
-        while (inputOffset < inputChunk.length) {
-          if (this.state === DecodingState.readingSize) {
-            const lineEnd = inputChunk.indexOf(0x0a, inputOffset) // Find LF
-
-            if (lineEnd === -1) {
-              this.chunkSizeBuffer += this.decoder.decode(inputChunk.subarray(inputOffset), {
-                stream: true
-              })
-              break
-            }
-
-            this.chunkSizeBuffer += this.decoder.decode(inputChunk.subarray(inputOffset, lineEnd), {
-              stream: true
-            })
-            this.remaining = parseInt(this.chunkSizeBuffer.trim(), 16)
-            this.chunkSizeBuffer = ''
-            inputOffset = lineEnd + 1
-
-            if (this.remaining === 0) {
-              break
-            }
-
-            this.state = DecodingState.readingBody
-          } else if (this.state === DecodingState.readingBody) {
-            const bytesToRead = Math.min(this.remaining, inputChunk.length - inputOffset)
-            const bytesRead = inputChunk.subarray(inputOffset, inputOffset + bytesToRead)
-            controller.enqueue(bytesRead)
-            inputOffset += bytesToRead
-            this.remaining -= bytesToRead
-
-            if (this.remaining === 0) {
-              this.state = DecodingState.readingCRLF
-            }
-          } else if (this.state === DecodingState.readingCRLF) {
-            const lineEnd = inputChunk.indexOf(0x0a, inputOffset) // Find LF
-            if (lineEnd === -1) {
-              this.chunkSizeBuffer += this.decoder.decode(inputChunk.subarray(inputOffset), {
-                stream: true
-              })
-              break
-            }
-
-            this.chunkSizeBuffer += this.decoder.decode(inputChunk.subarray(inputOffset, lineEnd), {
-              stream: true
-            })
-            inputOffset = lineEnd + 1
-            this.state = DecodingState.readingSize
-          }
-        }
-      },
-
-      flush: (controller) => {
-        if (this.remaining > 0) {
-          controller.enqueue(this.encoder.encode(this.chunkSizeBuffer))
-        }
-      }
-    })
-  }
-}
-
-class HttpParser {
-  headers: Headers = new Headers()
-  status: number = 0
-  statusText: string = ''
-
-  private static parseHeaders (lines: string[]): Headers {
-    const headers = new Headers()
-    for (const line of lines) {
-      const [name] = line.split(': ', 1)
-      headers.set(name.toLowerCase(), line.substring(name.length + 2))
+    // Add connection close
+    if (!headers.has('Connection')) {
+      httpRequest += `Connection: close${CRLF}`
     }
-    return headers
-  }
 
-  public async parse (stream: ReadableStream): Promise<ReadableStream<Uint8Array>> {
-    const t = this
-    const maybeChunkedDecoder = new MaybeChunkedDecoder()
-    let headersParsed = false
-    const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>()
-
-    let headerText = ''
-
-    return new Promise((resolve, reject) => {
-      stream
-        .pipeThrough(
-          new TransformStream<Uint8Array, Uint8Array>({
-            async transform (chunk, controller) {
-              if (!headersParsed) {
-                try {
-                  const chunkText = new TextDecoder().decode(chunk, { stream: true })
-                  headerText += chunkText
-                  const headerEndIndex = headerText.indexOf('\r\n\r\n')
-                  const prevHeaderTextLength = headerText.length - chunkText.length
-                  const bodyStartIndexRelativeToChunk = (headerEndIndex + 4) - prevHeaderTextLength
-
-                  if (headerEndIndex >= 0) {
-                    const headerLines = headerText.slice(0, headerEndIndex).split('\r\n')
-                    const [version, statusCode] = headerLines[0].split(' ')
-                    t.status = parseInt(statusCode, 10)
-                    t.headers = HttpParser.parseHeaders(headerLines.slice(1))
-                    t.statusText = headerLines[0].substring(version.length + statusCode.length + 2)
-
-                    if (t.headers.get('transfer-encoding') === 'chunked') {
-                      maybeChunkedDecoder.setIsChunked()
-                    }
-
-                    headersParsed = true
-                    resolve(readable)
-
-                    const bodyChunk = chunk.subarray(bodyStartIndexRelativeToChunk)
-
-                    if (bodyChunk.byteLength > 0) {
-                      controller.enqueue(bodyChunk)
-                    }
-                  } else {
-                    // Do nothing, we need more data
-                  }
-                } catch (err) {
-                  reject(err)
-                }
-              } else {
-                controller.enqueue(chunk)
-              }
-            }
-          })
-        )
-        .pipeThrough(maybeChunkedDecoder)
-        .pipeTo(writable)
-        .then(() => {
-          if (!headersParsed) {
-            reject(new Error('No headers parsed'))
-          }
-        })
-        .catch((err) => {
-          if (!headersParsed) {
-            reject(err)
-          }
-          // eslint-disable-next-line no-console
-          console.warn('Error parsing HTTP response:', err)
-        })
+    headers.forEach((value, name) => {
+      httpRequest += `${name}: ${value}${CRLF}`
     })
-  }
+    httpRequest += CRLF
+
+    yield textEncoder.encode(httpRequest)
+
+    if (resp.body !== null && resp.body !== undefined) {
+      const reader = resp.body.getReader()
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) {
+          break
+        }
+        yield value
+      }
+    }
+  })())
 }

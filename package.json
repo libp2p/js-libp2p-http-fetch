@@ -46,6 +46,7 @@
     "test:chrome": "aegir test -t browser --cov",
     "test:chrome-webworker": "aegir test -t webworker",
     "test:firefox": "aegir test -t browser -- --browser firefox",
+    "test:webkit": "aegir test -t browser -- --browser webkit",
     "test:firefox-webworker": "aegir test -t webworker -- --browser firefox",
     "test:node": "aegir test -t node --cov",
     "dep-check": "aegir dep-check",
@@ -57,6 +58,7 @@
     "@multiformats/multiaddr": "^12.2.1",
     "@perseveranza-pets/milo": "^0.2.0",
     "it-pushable": "^3.2.3",
+    "p-defer": "^4.0.1",
     "uint8arraylist": "^2.4.8"
   },
   "devDependencies": {

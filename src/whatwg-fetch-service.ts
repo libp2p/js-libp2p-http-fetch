@@ -2,7 +2,7 @@ import { multiaddr } from '@multiformats/multiaddr'
 import { Uint8ArrayList, isUint8ArrayList } from 'uint8arraylist'
 import { PROTOCOL_NAME } from './constants.js'
 import { fetchViaDuplex } from './fetch/index.js'
-import type { FetchComponents, PerfInit, HTTP as WHATWGFetchInterface } from './index.js'
+import type { FetchComponents, FetchInit, HTTP as WHATWGFetchInterface } from './index.js'
 import type { Logger, Startable } from '@libp2p/interface'
 import type { IncomingStreamData } from '@libp2p/interface-internal'
 
@@ -26,64 +26,24 @@ function copyUntilCRLF (dst: Uint8Array, src: Uint8Array, startOffset: number): 
   return crlfIndex - startOffset
 }
 
-// copyFromUint8ArrayListUntilCRLF returns the bytes copied (as n), and the rest of the array list (as rest)
-function copyFromUint8ArrayListUntilCRLF (dst: Uint8Array, src: Uint8ArrayList, startOffset: number): { n: number, rest: Uint8ArrayList } {
-  let bytesCopied = 0
-  const rest = new Uint8ArrayList()
-  let foundCRLF = false
-  for (const chunk of src) {
-    if (foundCRLF) {
-      rest.append(chunk)
-      continue
-    }
-    const n = copyUntilCRLF(dst, chunk, startOffset)
-    bytesCopied += n
-    startOffset += n
-    if (n < chunk.length) {
-      foundCRLF = true
-      rest.append(chunk.subarray(n))
-      return { n: bytesCopied, rest }
-    }
-  }
-  return { n: bytesCopied, rest }
-}
-
-async function readUntilCRLFIntoBuffer (dst: Uint8Array, src: AsyncIterator<Uint8Array | Uint8ArrayList>): Promise<{ n: number, rest: Uint8ArrayList }> {
-  let writeOffset = 0
-  while (true) {
-    const { value: chunk, done } = await src.next()
-    if (done != null && done) {
-      // No more data
-      throw new Error('Unexpected end of stream')
-    }
-    if (isUint8ArrayList(chunk)) {
-      const { n, rest } = copyFromUint8ArrayListUntilCRLF(dst, chunk, writeOffset)
-      if (rest.length > 0) {
-        // Found CRLF
-        return { n: n + writeOffset, rest }
-      }
-    } else {
-      const n = copyUntilCRLF(dst, chunk, writeOffset)
-      writeOffset += n
-      if (n < chunk.length) {
-        // Found CRLF
-        return { n: writeOffset, rest: new Uint8ArrayList(chunk.subarray(n)) }
-      }
-    }
-  }
-}
-
 export class WHATWGFetch implements Startable, WHATWGFetchInterface {
   private readonly log: Logger
-  public readonly protocol: string
+  public readonly protocol: string = PROTOCOL_NAME
   private readonly components: FetchComponents
   private started: boolean
+  private readonly _fetch: (request: Request) => Promise<Response>
 
-  constructor (components: FetchComponents, init: PerfInit = {}) {
+  constructor (components: FetchComponents, init: FetchInit = {}) {
     this.components = components
     this.log = components.logger.forComponent('libp2p:whatwg-fetch')
     this.started = false
-    this.protocol = init.protocolName ?? PROTOCOL_NAME
+    if (init.fetch != null) {
+      this._fetch = init.fetch
+    } else if (typeof globalThis.fetch === 'function') {
+      this._fetch = globalThis.fetch
+    } else {
+      throw new Error('No fetch implementation provided and global fetch is not available')
+    }
   }
 
   async start (): Promise<void> {
@@ -105,30 +65,7 @@ export class WHATWGFetch implements Startable, WHATWGFetchInterface {
   }
 
   async handleMessage (data: IncomingStreamData): Promise<void> {
-    const { stream } = data
-    // Parse HTTP/1.1 request
-    const buffer = new Uint8Array(16 << 10)
-    const { n, rest } = await readUntilCRLFIntoBuffer(buffer, stream.source)
-    const requestLine = new TextDecoder().decode(buffer.subarray(0, n))
-    const [method, requestTarget, version] = requestLine.split(' ')
-    if (version !== 'HTTP/1.1') {
-      throw new Error('Unsupported HTTP version')
-    }
-
-    // eslint-disable-next-line no-console
-    console.log(method, requestTarget, rest)
-
-    //  todo
-    // const { n, rest } = copyFromUint8ArrayListUntilCRLF(buffer, rest)
-
-    // Read headers
-    // const headers = new Headers()
-
-    // Create a request object
-    // const req = new Request(requestTarget, {
-    //   method
-
-    // })
+    // const { stream } = data
 
     throw new Error('Not implemented')
   }
@@ -143,7 +80,7 @@ export class WHATWGFetch implements Startable, WHATWGFetchInterface {
       return fetchViaDuplex(s)(request)
     } else {
       // Use browser fetch or polyfill...
-      throw new Error('Not implemented')
+      return this._fetch(request)
     }
   }
 }

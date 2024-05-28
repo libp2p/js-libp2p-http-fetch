@@ -64,6 +64,12 @@ export interface FetchComponents {
   logger: ComponentLogger
 }
 
-export function http (init: unknown = {}): (components: FetchComponents) => HTTP {
+export interface FetchInit {
+  // Native Fetch implementation. Defaults to global fetch if available. If not
+  // available, it will throw an error.
+  fetch?(request: Request): Promise<Response>
+}
+
+export function http (init: FetchInit = {}): (components: FetchComponents) => HTTP {
   return (components) => new WHATWGFetch(components, init)
 }
