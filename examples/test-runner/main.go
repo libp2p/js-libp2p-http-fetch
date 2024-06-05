@@ -8,28 +8,42 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"sync"
 )
 
 func main() {
 	hasProxy := flag.Bool("hasProxy", false, "Does this test have a proxy server?")
 	flag.Parse()
+	if err := runTest(*hasProxy); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func runTest(hasProxy bool) error {
+	var wg sync.WaitGroup
+	defer wg.Wait()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	serverMaCh := make(chan string, 1)
-	go runServer(ctx, serverMaCh)
+	go func() {
+		wg.Add(1)
+		defer wg.Done()
+		runServer(ctx, serverMaCh)
+	}()
 	serverMultiaddr := <-serverMaCh
 
-	if *hasProxy {
+	if hasProxy {
 		buildProxy()
-		go runProxy(ctx, serverMultiaddr)
+		go func() {
+			wg.Add(1)
+			defer wg.Done()
+			runProxy(ctx, serverMultiaddr)
+		}()
 	}
 
-	if err := runTest(serverMultiaddr); err != nil {
-		cancel()
-		log.Fatal(err)
-	}
+	return runClient(serverMultiaddr)
 }
 
 func runServer(ctx context.Context, serverStdoutCh chan<- string) {
@@ -55,7 +69,7 @@ func runServer(ctx context.Context, serverStdoutCh chan<- string) {
 	serverCmd.Wait()
 }
 
-func runTest(serverMultiaddr string) error {
+func runClient(serverMultiaddr string) error {
 	clientCmd := exec.Command("node", "client.mjs", serverMultiaddr)
 	clientCmd.Stderr = os.Stderr
 	return clientCmd.Run()

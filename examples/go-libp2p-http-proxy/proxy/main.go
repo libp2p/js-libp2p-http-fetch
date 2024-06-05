@@ -4,12 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
 	"os/signal"
-	"time"
 
 	"github.com/libp2p/go-libp2p"
 	libp2phttp "github.com/libp2p/go-libp2p/p2p/http"
@@ -35,7 +33,6 @@ func main() {
 	for _, a := range h.Addrs() {
 		fmt.Println(a.Encapsulate(multiaddr.StringCast("/p2p/" + h.ID().String())))
 	}
-	fmt.Println("")
 
 	targetUrl, err := url.Parse(*proxyTarget)
 	if err != nil {
@@ -43,75 +40,11 @@ func main() {
 	}
 
 	// reverse proxy
-	// proxy := httputil.NewSingleHostReverseProxy(targetUrl)
-	// proxy.Director = func(req *http.Request) {
-	// 	fmt.Println("Request URL:", req.URL.String())
-	// 	fmt.Println("Request host:", req.Host)
-	// 	fmt.Println("remote addr:", req.RemoteAddr)
-	// 	fmt.Println(req)
-	// 	req.RemoteAddr = ""
+	proxy := httputil.NewSingleHostReverseProxy(targetUrl)
 
-	// 	req.URL.Scheme = targetUrl.Scheme
-	// 	req.URL.Host = targetUrl.Host
-	// 	req.Host = targetUrl.Host
-	// 	fmt.Println("Request URL:", req.URL.String())
-	// 	fmt.Println("req host", req.Host)
-	// }
-	proxy := &httputil.ReverseProxy{
-		Rewrite: func(r *httputil.ProxyRequest) {
-			r.SetURL(targetUrl)
-			r.Out.Host = r.In.Host // if desired
-		},
-		// ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
-		// 	panic(err)
-		// },
-	}
-	_ = proxy
+	httpHost := libp2phttp.Host{StreamHost: h}
 
-	httpHost := libp2phttp.Host{
-		StreamHost:        h,
-		ListenAddrs:       []multiaddr.Multiaddr{multiaddr.StringCast("/ip4/127.0.0.1/tcp/6677/http")},
-		InsecureAllowHTTP: true,
-	}
-
-	// httpHost.SetHTTPHandlerAtPath("/http-proxy/0.0.1", "/", proxy)
-	httpHost.SetHTTPHandlerAtPath("/http-proxy/0.0.1", "/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ch := w.(http.CloseNotifier).CloseNotify()
-		select {
-		case <-ch:
-			fmt.Println("Connection closed???")
-		case <-time.After(time.Second):
-		}
-
-		fmt.Println("Request URL:", r.URL.String())
-		req := http.Request{
-			Method: r.Method,
-			// Host:   "localhost:55776",
-			URL: targetUrl,
-			// Header: r.Header,
-			// Body:   r.Body,
-			// Proto:            r.Proto,
-			// ProtoMajor:       r.ProtoMajor,
-			// ProtoMinor:       r.ProtoMinor,
-			// ContentLength:    r.ContentLength,
-			// TransferEncoding: r.TransferEncoding,
-			// GetBody:          r.GetBody,
-			// Close:            r.Close,
-			// Host:             r.Host,
-			// Form:             r.Form,
-			// PostForm:         r.PostForm,
-			// MultipartForm:    r.MultipartForm,
-			// Trailer:          r.Trailer,
-			// RemoteAddr:       r.RemoteAddr,
-			// RequestURI:       r.RequestURI,
-			// TLS:              r.TLS,
-			// Cancel:           r.Cancel,
-			// Response:         r.Response,
-		}
-		proxy.ServeHTTP(w, &req)
-		// proxy.ServeHTTP(w, r.WithContext(context.Background()))
-		// w.Write([]byte("Hello, World!"))
-	}))
+	httpHost.SetHTTPHandlerAtPath("/http-proxy/0.0.1", "/", proxy)
 	go httpHost.Serve()
 
 	// Wait for interrupt signal to stop
