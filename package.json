@@ -54,7 +54,7 @@
   "dependencies": {
     "@libp2p/interface": "^1.2.0",
     "@libp2p/interface-internal": "^1.1.0",
-    "@multiformats/multiaddr": "file:../../multiformats/js-multiaddr",
+    "@multiformats/multiaddr": "^12.3.0",
     "@multiformats/multiaddr-to-uri": "file:../../multiformats/js-multiaddr-to-uri",
     "@perseveranza-pets/milo": "^0.2.0",
     "it-pushable": "^3.2.3",
