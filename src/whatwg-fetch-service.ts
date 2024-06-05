@@ -1,30 +1,17 @@
-import { multiaddr } from '@multiformats/multiaddr'
-import { Uint8ArrayList, isUint8ArrayList } from 'uint8arraylist'
+import { multiaddr, protocols, type Multiaddr } from '@multiformats/multiaddr'
+import { multiaddrToUri } from '@multiformats/multiaddr-to-uri'
 import { PROTOCOL_NAME } from './constants.js'
-import { fetchViaDuplex } from './fetch/index.js'
-import type { FetchComponents, FetchInit, HTTP as WHATWGFetchInterface } from './index.js'
+import { fetchViaDuplex, handleRequestViaDuplex, type HTTPHandler } from './fetch/index.js'
+import type { CustomHTTPHandlerInit, FetchComponents, HTTPInit, HTTP as WHATWGFetchInterface } from './index.js'
 import type { Logger, Startable } from '@libp2p/interface'
 import type { IncomingStreamData } from '@libp2p/interface-internal'
 
-// const CRLF_BYTES = new Uint8Array([13, 10])
-const CR_BYTE = 13
-const LF_BYTE = 10
+const wellKnownProtocols = '/.well-known/libp2p/protocols'
+const multiaddrURIPrefix = 'multiaddr:'
 
-// copyUntilCRLF copies bytes from src to dst until a CRLF is encountered. Returns the number of bytes copied.
-function copyUntilCRLF (dst: Uint8Array, src: Uint8Array, startOffset: number): number {
-  dst.set(src, startOffset)
-  let crlfIndex = -1
-  for (let i = startOffset - 1; i < startOffset + src.length - 1; i++) {
-    if (src[i] === CR_BYTE && src[i + 1] === LF_BYTE) {
-      crlfIndex = i
-      break
-    }
-  }
-  if (crlfIndex === -1) {
-    return src.length
-  }
-  return crlfIndex - startOffset
-}
+type ProtocolID = string
+type ProtosMap = Record<ProtocolID, { path: string }>
+type ProtoHandlers = Record<ProtocolID, HTTPHandler>
 
 export class WHATWGFetch implements Startable, WHATWGFetchInterface {
   private readonly log: Logger
@@ -32,8 +19,18 @@ export class WHATWGFetch implements Startable, WHATWGFetchInterface {
   private readonly components: FetchComponents
   private started: boolean
   private readonly _fetch: (request: Request) => Promise<Response>
+  private readonly customHTTPHandler?: (request: Request) => Promise<Response>
+  private readonly wellKnownProtosCache = new LRUCache<Multiaddr, ProtosMap>(100)
+  private readonly myWellKnownProtos: ProtosMap = {}
+  // Used when matching paths to protocols. We match from most specific to least specific.
+  private readonly myProtosSortedByLength: Array<{ proto: ProtocolID, path: string }> = []
+  private readonly protoHandlers: ProtoHandlers = {}
 
-  constructor (components: FetchComponents, init: FetchInit = {}) {
+  _hasCustomHandler (h: HTTPInit | CustomHTTPHandlerInit): h is CustomHTTPHandlerInit {
+    return (h as CustomHTTPHandlerInit).customHTTPHandler !== undefined
+  }
+
+  constructor (components: FetchComponents, init: HTTPInit | (HTTPInit & CustomHTTPHandlerInit)) {
     this.components = components
     this.log = components.logger.forComponent('libp2p:whatwg-fetch')
     this.started = false
@@ -43,6 +40,10 @@ export class WHATWGFetch implements Startable, WHATWGFetchInterface {
       this._fetch = globalThis.fetch
     } else {
       throw new Error('No fetch implementation provided and global fetch is not available')
+    }
+
+    if (this._hasCustomHandler(init)) {
+      this.customHTTPHandler = init.customHTTPHandler
     }
   }
 
@@ -64,23 +65,196 @@ export class WHATWGFetch implements Startable, WHATWGFetchInterface {
     return this.started
   }
 
-  async handleMessage (data: IncomingStreamData): Promise<void> {
-    // const { stream } = data
-
-    throw new Error('Not implemented')
+  private async handleMessage (data: IncomingStreamData): Promise<void> {
+    const { stream } = data
+    try {
+      if (this.customHTTPHandler != null) {
+        await handleRequestViaDuplex(stream, this.customHTTPHandler)
+        return
+      }
+      await handleRequestViaDuplex(stream, this.defaultMuxer.bind(this))
+    } catch (err) {
+      this.log.error('Error handling message', err)
+    }
   }
 
-  async fetch (request: Request): Promise<Response> {
+  private async defaultMuxer (req: Request): Promise<Response> {
+    try {
+      const url = new URL(req.url)
+      if (url.pathname === wellKnownProtocols) {
+        return await this.serveWellKnownProtocols(req)
+      }
+      for (const p of this.myProtosSortedByLength) {
+        if (url.pathname.startsWith(p.path)) {
+          const handler = this.protoHandlers[p.proto]
+          if (handler != null) {
+            return await handler(req)
+          }
+        }
+      }
+
+      // No handler found, 404
+      return new Response(null, { status: 404 })
+    } catch (err) {
+      this.log.error('Error in defaultMuxer', err)
+      return new Response(null, { status: 500 })
+    }
+  }
+
+  async serveWellKnownProtocols (req: Request): Promise<Response> {
+    return new Response(JSON.stringify(this.myWellKnownProtos), {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+  }
+
+  async fetch (request: string | Request, requestInit?: RequestInit): Promise<Response> {
+    if (typeof request === 'string') {
+      return this.innerFetch(new Request(request, requestInit ?? {}))
+    }
+    return this.innerFetch(request)
+  }
+
+  private async innerFetch (request: Request): Promise<Response> {
     // Get the peer from the request
     const { url } = request
-    if (url.startsWith('multiaddr:')) {
-      const ma = url.substring('multiaddr:'.length)
-      const conn = await this.components.connectionManager.openConnection(multiaddr(ma))
-      const s = await conn.newStream(PROTOCOL_NAME)
-      return fetchViaDuplex(s)(request)
-    } else {
-      // Use browser fetch or polyfill...
-      return this._fetch(request)
+    if (url.startsWith(multiaddrURIPrefix)) {
+      const ma = multiaddr(url.substring(multiaddrURIPrefix.length))
+      const peerWithoutHTTPPath = ma.decapsulateCode(protocols('http-path').code)
+
+      if (this.isHTTPTransportMultiaddr(peerWithoutHTTPPath)) {
+        const [, httpPathVal] = ma.stringTuples().find(([code]) =>
+          code === protocols('http-path').code
+        ) ?? ['', '']
+        let path = decodeURIComponent(httpPathVal ?? '')
+        if (path === '') {
+          path = '/'
+        }
+        const reqUrl = `${multiaddrToUri(peerWithoutHTTPPath)}${path}`
+        // We want to make a request over native fetch, so we need to copy the
+        // request and change the URL to be an HTTP URI
+        return this._fetch(new Request(reqUrl, {
+          body: request.body,
+          // @ts-expect-error - TS doesn't know about this property
+          duplex: request.duplex ?? 'half',
+          headers: request.headers,
+          cache: request.cache,
+          credentials: request.credentials,
+          integrity: request.integrity,
+          keepalive: request.keepalive,
+          method: request.method,
+          mode: request.mode,
+          redirect: request.redirect,
+          referrer: request.referrer,
+          referrerPolicy: request.referrerPolicy,
+          signal: request.signal
+        }))
+      } else {
+        const conn = await this.components.connectionManager.openConnection(peerWithoutHTTPPath)
+
+        const s = await conn.newStream(PROTOCOL_NAME)
+        return fetchViaDuplex(s)(request)
+      }
     }
+    // Use browser fetch or polyfill...
+    return this._fetch(request)
+  }
+
+  private isHTTPTransportMultiaddr (peer: Multiaddr): boolean {
+    const parts = peer.protos()
+    if (parts.length === 0) {
+      throw new Error('peer multiaddr must have at least one part')
+    }
+
+    return parts[parts.length - 1].name === 'http' || parts[parts.length - 1].name === 'https'
+  }
+
+  // Register a protocol with a path and remember it so we can tell our peers
+  // about it via .well-known
+  registerProtocol (protocol: string, path: string): void {
+    if (path === '') {
+      path = '/'
+    }
+    if (!path.startsWith('/')) {
+      path = `/${path}`
+    }
+
+    if (this.myWellKnownProtos[protocol] != null) {
+      throw new Error(`Protocol ${protocol} already registered`)
+    }
+    this.myWellKnownProtos[protocol] = { path }
+    this.myProtosSortedByLength.push({ proto: protocol, path })
+    this.myProtosSortedByLength.sort(({ path: a }, { path: b }) => b.length - a.length)
+  }
+
+  handleHTTPProtocol (protocol: ProtocolID, path: string, handler: (req: Request) => Promise<Response>): void {
+    this.registerProtocol(protocol, path)
+    this.protoHandlers[protocol] = handler
+  }
+
+  async prefixForProtocol (peer: Multiaddr, protocol: string): Promise<string> {
+    const cached = this.wellKnownProtosCache.get(peer)
+    if (cached !== undefined) {
+      if (cached[protocol] == null) {
+        throw new Error(`Peer does not serve protocol: ${protocol}`)
+      }
+      return cached[protocol].path
+    }
+
+    let fetch
+    let reqUrl = ''
+    if (this.isHTTPTransportMultiaddr(peer)) {
+      fetch = this._fetch
+      reqUrl = `${multiaddrToUri(peer)}${wellKnownProtocols}`
+    } else {
+      const conn = await this.components.connectionManager.openConnection(peer)
+      const s = await conn.newStream(PROTOCOL_NAME)
+      fetch = fetchViaDuplex(s)
+      reqUrl = multiaddrURIPrefix + peer.encapsulate(`/http-path/${encodeURIComponent(wellKnownProtocols)}`).toString()
+    }
+    const resp = await fetch(new Request(reqUrl, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json'
+      }
+    }))
+    if (resp.status !== 200) {
+      throw new Error(`Unexpected status code: ${resp.status}`)
+    }
+    const peerMeta = await resp.json()
+    this.wellKnownProtosCache.set(peer, peerMeta)
+    if (peerMeta[protocol] == null) {
+      throw new Error(`Peer does not serve protocol: ${protocol}`)
+    }
+    return peerMeta[protocol].path
+  }
+}
+
+class LRUCache<K, V> {
+  private readonly size: number
+  private readonly cache: Map<K, V>
+  constructor (size: number) {
+    this.size = size
+    this.cache = new Map()
+  }
+
+  get (key: K): V | undefined {
+    const v = this.cache.get(key)
+    if (v != null) {
+      // Move to front
+      this.cache.delete(key)
+      this.cache.set(key, v)
+    }
+    return v
+  }
+
+  set (key: K, value: V): void {
+    if (this.cache.has(key)) {
+      this.cache.delete(key)
+    } else if (this.cache.size >= this.size) {
+      this.cache.delete(this.cache.keys().next().value)
+    }
+    this.cache.set(key, value)
   }
 }

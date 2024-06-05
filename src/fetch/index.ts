@@ -1,6 +1,8 @@
 /* eslint-disable max-depth */
 /* eslint-disable complexity */
 
+import { multiaddr, protocols } from '@multiformats/multiaddr'
+import { multiaddrToUri } from '@multiformats/multiaddr-to-uri'
 // @ts-expect-error missing types
 import { milo } from '@perseveranza-pets/milo/index-with-wasm.js'
 import defer from 'p-defer'
@@ -12,6 +14,44 @@ interface Duplex<TSource, TSink = TSource, RSink = Promise<void>> {
   sink(source: AsyncIterable<TSink> | Iterable<TSink>): RSink
 }
 
+let ranDetectionForBrokenReqBody = false
+let brokenRequestBody = false
+
+/**
+ * Detects if the request body can not be a ReadableStream and should be read in
+ * full before returning the request This is only an issue in the current version of Firefox.
+ *
+ * @returns true if the request body can not be a ReadableStream and should be read in full before returning the request
+ */
+async function detectBrokenRequestBody (): Promise<boolean> {
+  if (ranDetectionForBrokenReqBody) {
+    return brokenRequestBody
+  }
+  ranDetectionForBrokenReqBody = true
+  const rs = new ReadableStream({
+    start (controller) {
+      controller.enqueue(new Uint8Array([0]))
+      controller.close()
+    }
+  })
+
+  const req = new Request('https://example.com', {
+    method: 'POST',
+    body: rs,
+    // @ts-expect-error this is required by NodeJS despite being the only reasonable option https://fetch.spec.whatwg.org/#requestinit
+    duplex: 'half'
+  })
+
+  const ab = await req.arrayBuffer()
+  brokenRequestBody = ab.byteLength !== 1
+  return brokenRequestBody
+}
+
+/**
+ * Create a fetch function that can be used to fetch requests via a duplex stream
+ *
+ * @returns a function that can be used to fetch requests via a duplex stream
+ */
 export function fetchViaDuplex (s: Duplex<Uint8Array | Uint8ArrayList>): Fetch {
   return async (req) => {
     await writeRequestToDuplex(s, req)
@@ -24,8 +64,16 @@ export function fetchViaDuplex (s: Duplex<Uint8Array | Uint8ArrayList>): Fetch {
   }
 }
 
+/**
+ * A function that can be used to handle HTTP requests
+ */
 export interface HTTPHandler { (req: Request): Promise<Response> }
 
+/**
+ *
+ * @param s - Duplex where the request will be read from and the response will be written to
+ * @param h - HTTP handler that will be called with the request
+ */
 export async function handleRequestViaDuplex (s: Duplex<Uint8Array | Uint8ArrayList>, h: HTTPHandler): Promise<void> {
   const [reqP] = readHTTPMsg(true, s)
   const req = await reqP
@@ -39,12 +87,21 @@ export async function handleRequestViaDuplex (s: Duplex<Uint8Array | Uint8ArrayL
 
 const BUFFER_SIZE = 16 << 10
 
+/**
+ * Exported for testing.
+ *
+ * @param expectRequest - is this a Request or a Response
+ * @param r - where to read from
+ * @returns two promises. The first is the parsed Request or Response. The second is a promise that resolves when the parsing is done.
+ */
 export function readHTTPMsg (expectRequest: boolean, r: Duplex<Uint8Array | Uint8ArrayList>): [Promise<Request | Response>, Promise<void>] {
   const msgPromise = defer<Request | Response>()
 
   return [
     msgPromise.promise,
     (async () => {
+      const unconsumedChunks = new Uint8ArrayList()
+
       const textDecoder = new TextDecoder()
       const ptr = milo.alloc(BUFFER_SIZE)
 
@@ -60,16 +117,16 @@ export function readHTTPMsg (expectRequest: boolean, r: Duplex<Uint8Array | Uint
       })
       const bodyStreamController = await bodyStreamControllerPromise.promise
 
-      // Handle start line
-
       // Response
       let status = ''
       let reason = ''
-      let fulfilledMsgPromise = false
 
       // Requests
       let url = ''
       let method = ''
+
+      let fulfilledMsgPromise = false
+
       milo.setOnStatus(parser, (_: unknown, from: number, size: number) => {
         status = textDecoder.decode(unconsumedChunks.subarray(from, from + size))
       })
@@ -116,14 +173,55 @@ export function readHTTPMsg (expectRequest: boolean, r: Duplex<Uint8Array | Uint
               reqBody = null
             }
 
-            const urlWithHost = `https://${headers.get('Host') ?? ''}${url}`
-            const req = new Request(urlWithHost, {
-              method,
-              body: reqBody,
-              headers
+            const urlWithHost = `https://${headers.get('Host') ?? 'unknown_host._libp2p'}${url}`
+            detectBrokenRequestBody().then(async (broken) => {
+              let req: Request
+              if (!broken) {
+                req = new Request(urlWithHost, {
+                  method,
+                  body: reqBody,
+                  headers,
+                  // @ts-expect-error this is required by NodeJS despite being the only reasonable option https://fetch.spec.whatwg.org/#requestinit
+                  duplex: 'half'
+                })
+              } else {
+                if (reqBody === null) {
+                  req = new Request(urlWithHost, {
+                    method,
+                    headers
+                  })
+                } else {
+                  // Unfortunate workaround for a bug in Firefox's Request implementation.
+                  // They don't support ReadableStream bodies, so we need to read the whole body.
+                  const rdr = reqBody.getReader()
+                  const parts = []
+                  while (true) {
+                    const { done, value } = await rdr.read()
+                    if (done) {
+                      break
+                    }
+                    if (value !== undefined) {
+                      parts.push(value)
+                    }
+                  }
+                  const totalSize = parts.reduce((acc, part) => acc + part.byteLength, 0)
+                  const body = new Uint8Array(totalSize)
+                  for (let i = 0, offset = 0; i < parts.length; i++) {
+                    body.set(parts[i], offset)
+                    offset += parts[i].byteLength
+                  }
+                  req = new Request(urlWithHost, {
+                    method,
+                    body,
+                    headers
+                  })
+                }
+              }
+              msgPromise.resolve(req)
+              fulfilledMsgPromise = true
+            }).catch(err => {
+              msgPromise.reject(err)
             })
-            msgPromise.resolve(req)
-            fulfilledMsgPromise = true
           } else {
             let respBody: ReadableStream<Uint8Array> | null = body
             if (status === '204') {
@@ -145,10 +243,9 @@ export function readHTTPMsg (expectRequest: boolean, r: Duplex<Uint8Array | Uint
       // Handle the body
       milo.setOnData(parser, (_: unknown, from: number, size: number) => {
         const c: Uint8Array = unconsumedChunks.subarray(from, from + size)
-        // @ts-expect-error Unclear why this fails. TODO debug
+        // @ts-expect-error Unclear why this fails typecheck. TODO debug
         bodyStreamController.enqueue(c)
       })
-      // milo.setOnBody(parser, () => {})
       milo.setOnError(parser, () => {
         bodyStreamController.error(new Error('Error parsing HTTP message'))
       })
@@ -160,7 +257,6 @@ export function readHTTPMsg (expectRequest: boolean, r: Duplex<Uint8Array | Uint
       })
 
       // Consume data
-      const unconsumedChunks = new Uint8ArrayList()
       for await (let chunks of r.source) {
         if (!isUint8ArrayList(chunks)) {
           chunks = new Uint8ArrayList(chunks)
@@ -188,21 +284,46 @@ export function readHTTPMsg (expectRequest: boolean, r: Duplex<Uint8Array | Uint
   ]
 }
 
+const multiaddrURIPrefix = 'multiaddr:'
 const CRLF = '\r\n'
 const encodedCRLF = new TextEncoder().encode(CRLF)
 const encodedFinalChunk = new TextEncoder().encode(`0${CRLF}${CRLF}`)
 async function writeRequestToDuplex (s: Duplex<unknown, Uint8Array>, request: Request): Promise<void> {
   const method = request.method
-  const url = new URL(request.url)
-  const headers = request.headers
-  const path = url.pathname
-  const query = url.search
 
-  let httpRequest = `${method} ${path}${query} HTTP/1.1${CRLF}`
+  let reqUrl = request.url
+  let path = ''
+  let urlHost = ''
+  if (reqUrl.startsWith(multiaddrURIPrefix)) {
+    reqUrl = reqUrl.substring(multiaddrURIPrefix.length)
+    const ma = multiaddr(reqUrl)
+    // Find the http-path component
+    const [, httpPathVal] = ma.stringTuples().find(([code, value]) =>
+      code === protocols('http-path').code
+
+    ) ?? ['', '']
+    path = decodeURIComponent(httpPathVal ?? '')
+
+    try {
+      const maWithoutPath = ma.decapsulateCode(protocols('http-path').code)
+      const url = new URL(multiaddrToUri(maWithoutPath))
+      urlHost = url.host
+    } catch {}
+  } else {
+    const url = new URL(reqUrl)
+    urlHost = url.host
+    path = (url.pathname ?? '') + (url.search ?? '')
+  }
+  const headers = request.headers
+
+  if (path === '') {
+    path = '/'
+  }
+  let httpRequest = `${method} ${path} HTTP/1.1${CRLF}`
 
   // Add Host header if not present
-  if (!headers.has('Host')) {
-    httpRequest += `Host: ${url.host}${CRLF}`
+  if (!headers.has('Host') && urlHost !== '') {
+    httpRequest += `Host: ${urlHost}${CRLF}`
   }
   // Add connection close
   if (!headers.has('Connection')) {
@@ -212,8 +333,6 @@ async function writeRequestToDuplex (s: Duplex<unknown, Uint8Array>, request: Re
   headers.forEach((value, name) => {
     httpRequest += `${name}: ${value}${CRLF}`
   })
-
-  const requestIncludesContentAndNeedsContentLength = headers.has('Content-Length') && (method === 'POST' || method === 'PUT' || method === 'PATCH')
 
   let reqBody = request.body
   if (request.body === undefined && typeof request.arrayBuffer === 'function') {
@@ -230,11 +349,12 @@ async function writeRequestToDuplex (s: Duplex<unknown, Uint8Array>, request: Re
     }
   }
 
-  if (!requestIncludesContentAndNeedsContentLength && reqBody !== null) {
+  const requestIncludesContentAndNeedsContentLength = reqBody !== null && !headers.has('Content-Length') && (method === 'POST' || method === 'PUT' || method === 'PATCH')
+
+  if (requestIncludesContentAndNeedsContentLength) {
     // If we don't have the content length, we need to use chunked encoding
     httpRequest += `Transfer-Encoding: chunked${CRLF}`
   }
-
   httpRequest += CRLF
 
   void s.sink((async function * () {
@@ -251,12 +371,14 @@ async function writeRequestToDuplex (s: Duplex<unknown, Uint8Array>, request: Re
         const { done, value } = await reader.read()
         // If the stream is done, break the loop
         if (done) {
-          yield encodedFinalChunk
+          if (requestIncludesContentAndNeedsContentLength) {
+            yield encodedFinalChunk
+          }
           break
         }
 
         // add the chunk length
-        if (!requestIncludesContentAndNeedsContentLength) {
+        if (requestIncludesContentAndNeedsContentLength) {
           const chunkLength = value.byteLength.toString(16)
           const chunkLengthBuffer = new TextEncoder().encode(`${chunkLength}${CRLF}`)
           yield chunkLengthBuffer
@@ -264,7 +386,7 @@ async function writeRequestToDuplex (s: Duplex<unknown, Uint8Array>, request: Re
 
         yield value
 
-        if (!requestIncludesContentAndNeedsContentLength) {
+        if (requestIncludesContentAndNeedsContentLength) {
           yield encodedCRLF
         }
       }
