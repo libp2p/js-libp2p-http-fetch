@@ -146,6 +146,9 @@ jobs:
         with:
           node-version: lts/*
       - uses: ipfs/aegir/actions/cache-node-modules@master
+        with:
+          directories: |
+            ./examples/node_modules
       - uses: actions/setup-go@v5
       - run: go build -o test-runner main.go
         working-directory: ./examples/test-runner
