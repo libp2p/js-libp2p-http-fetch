@@ -124,10 +124,6 @@ jobs:
         with:
           node-version: lts/*
       - uses: ipfs/aegir/actions/cache-node-modules@master
-      # https://github.com/actions/runner-images/issues/9733#issuecomment-2074590278
-      - run: |
-          sudo rm /etc/apt/sources.list.d/microsoft-prod.list
-          sudo apt-get update
       - run: npx playwright install-deps
       - run: npm run --if-present test:webkit
       - uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
@@ -135,3 +131,22 @@ jobs:
           flags: webkit
           files: .coverage/*,packages/*/.coverage/*
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  test-examples:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - uses: ipfs/aegir/actions/cache-node-modules@master
+      - uses: actions/setup-go@v5
+      - run: go build -o test-runner main.go
+        working-directory: ./examples/test-runner
+      - run: ../test-runner/test-runner -hasProxy
+        working-directory: ./examples/go-libp2p-http-proxy
+      - run: ../test-runner/test-runner
+        working-directory: ./examples/js-libp2p-client-and-node-server/
+      - run: ../test-runner/test-runner
+        working-directory: ./examples/two-js-peers
