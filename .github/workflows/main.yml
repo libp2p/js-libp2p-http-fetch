@@ -19,7 +19,8 @@ jobs:
         working-directory: ./examples
       - uses: ipfs/aegir/actions/cache-node-modules@master
         with:
-          path: examples/node_modules
+          directories: |
+            ./examples/node_modules
 
   check:
     needs: build
