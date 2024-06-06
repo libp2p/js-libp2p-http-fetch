@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -26,27 +27,36 @@ func runTest(hasProxy bool) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	serverMaCh := make(chan string, 1)
+	serverCmd, serverMultiaddr, err := runServer(ctx)
+	if err != nil {
+		return err
+	}
 	go func() {
 		wg.Add(1)
 		defer wg.Done()
-		runServer(ctx, serverMaCh)
+		serverCmd.Wait()
 	}()
-	serverMultiaddr := <-serverMaCh
+	log.Println(serverMultiaddr)
 
 	if hasProxy {
 		buildProxy()
+		cmd, proxyAddr, err := runProxy(ctx, serverMultiaddr)
+		if err != nil {
+			return err
+		}
 		go func() {
 			wg.Add(1)
 			defer wg.Done()
-			runProxy(ctx, serverMultiaddr)
+			cmd.Wait()
 		}()
+
+		return runClient(proxyAddr)
 	}
 
 	return runClient(serverMultiaddr)
 }
 
-func runServer(ctx context.Context, serverStdoutCh chan<- string) {
+func runServer(ctx context.Context) (*exec.Cmd, string, error) {
 	serverCmd := exec.CommandContext(ctx, "node", "server.mjs")
 	serverCmd.Stderr = os.Stderr
 	serverCmd.Cancel = func() error {
@@ -55,18 +65,16 @@ func runServer(ctx context.Context, serverStdoutCh chan<- string) {
 	}
 	stdoutPipe, err := serverCmd.StdoutPipe()
 	if err != nil {
-		log.Fatal(err)
+		return nil, "", err
 	}
 
 	serverCmd.Start()
 	bufReader := bufio.NewReader(stdoutPipe)
 	s, err := bufReader.ReadString('\n')
 	if err != nil {
-		serverCmd.Process.Signal(os.Interrupt)
-		log.Fatal(err)
+		return nil, "", err
 	}
-	serverStdoutCh <- s
-	serverCmd.Wait()
+	return serverCmd, s, nil
 }
 
 func runClient(serverMultiaddr string) error {
@@ -80,12 +88,17 @@ func buildProxy() {
 	buildCmd.Dir = "./proxy"
 	buildCmd.Stderr = os.Stderr
 	buildCmd.Stdout = os.Stdout
+	buildCmd.Run()
 }
 
 var r, _ = regexp.Compile("/tcp/([0-9]+)")
 
-func runProxy(ctx context.Context, serverMultiaddr string) {
-	port := r.FindString(serverMultiaddr)
+func runProxy(ctx context.Context, serverMultiaddr string) (*exec.Cmd, string, error) {
+	matches := r.FindStringSubmatch(serverMultiaddr)
+	if len(matches) != 2 {
+		return nil, "", fmt.Errorf("Could not find port in server multiaddr")
+	}
+	port := matches[1]
 	proxyCmd := exec.CommandContext(ctx, "./proxy", "-proxy-target", "http://localhost:"+port)
 	proxyCmd.Cancel = func() error {
 		proxyCmd.Process.Signal(os.Interrupt)
@@ -93,6 +106,19 @@ func runProxy(ctx context.Context, serverMultiaddr string) {
 	}
 	proxyCmd.Dir = "./proxy"
 	proxyCmd.Stderr = os.Stderr
-	proxyCmd.Stdout = os.Stdout
-	proxyCmd.Run()
+	stdoutPipe, err := proxyCmd.StdoutPipe()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	proxyCmd.Start()
+	bufReader := bufio.NewReader(stdoutPipe)
+	s, err := bufReader.ReadString('\n')
+	if err != nil {
+		if proxyCmd.Process != nil {
+			proxyCmd.Process.Signal(os.Interrupt)
+		}
+		log.Fatal(err)
+	}
+	return proxyCmd, s, nil
 }
