@@ -3,7 +3,7 @@
 import { start, stop } from '@libp2p/interface'
 import { streamPair } from '@libp2p/interface-compliance-tests/mocks'
 import { defaultLogger } from '@libp2p/logger'
-import { multiaddr, type Multiaddr } from '@multiformats/multiaddr'
+import { multiaddr, type Multiaddr, type Protocol } from '@multiformats/multiaddr'
 import { duplexPair } from 'it-pair/duplex'
 import { type Libp2p } from 'libp2p'
 import pDefer from 'p-defer'
@@ -42,20 +42,20 @@ describe('whatwg-fetch', () => {
 
     let serverCB: StreamHandler
     const serverCBRegistered = pDefer()
-    serverComponents.registrar.handle.callsFake(async (protocol, cb) => {
+    serverComponents.registrar.handle.callsFake(async (protocol: Protocol, cb: StreamHandler) => {
       serverCB = cb
       serverCBRegistered.resolve()
     })
 
     const conn = stubInterface<Connection>()
-    conn.newStream.callsFake(async (protos, options) => {
+    conn.newStream.callsFake(async (protos: Protocol[], options?: any) => {
       const duplexes = duplexPair<any>()
       const streams = streamPair({ duplex: duplexes[0] }, { duplex: duplexes[1] })
       serverCB({ stream: streams[0], connection: conn })
       return streams[1]
     })
 
-    clientComponents.connectionManager.openConnection.callsFake(async (peer, options) => {
+    clientComponents.connectionManager.openConnection.callsFake(async (peer: Multiaddr, options?: any) => {
       if (peer.toString() === serverMultiaddr.toString()) {
         await serverCBRegistered.promise
         return conn
