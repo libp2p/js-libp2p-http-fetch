@@ -55,8 +55,8 @@
     "@libp2p/interface": "^1.2.0",
     "@libp2p/interface-internal": "^1.1.0",
     "@multiformats/multiaddr": "^12.3.0",
-    "@multiformats/multiaddr-to-uri": "file:../../multiformats/js-multiaddr-to-uri",
-    "@perseveranza-pets/milo": "^0.2.0",
+    "@multiformats/multiaddr-to-uri": "^10.1.0",
+    "@perseveranza-pets/milo": "^0.2.1",
     "it-pushable": "^3.2.3",
     "p-defer": "^4.0.1",
     "uint8arraylist": "^2.4.8"
