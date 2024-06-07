@@ -5,9 +5,7 @@
 [![codecov](https://img.shields.io/codecov/c/github/libp2p/js-libp2p.svg?style=flat-square)](https://codecov.io/gh/libp2p/js-libp2p)
 [![CI](https://img.shields.io/github/actions/workflow/status/libp2p/js-libp2p/main.yml?branch=main\&style=flat-square)](https://github.com/libp2p/js-libp2p/actions/workflows/main.yml?query=branch%3Amain)
 
-> Implementation of WHATWG Fetch with support for multiaddrs and libp2p streams.
-
-# About
+> Implementation of WHATWG Fetch with support for multiaddr URIs and libp2p streams. Use HTTP in p2p networks.
 
 <!--
 
@@ -24,4 +22,8 @@ repo and examine the changes made.
 
 -->
 
+# Install
+
 TODO
+
+## Example

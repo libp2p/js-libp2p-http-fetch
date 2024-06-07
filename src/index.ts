@@ -1,52 +1,33 @@
 /**
  * @packageDocumentation
  *
- * TODO
+ * {@link http} implements the WHATWG [Fetch
+ * api](https://fetch.spec.whatwg.org). It can be used as a drop in replacement
+ * for the browser's fetch function. It supports http, https, and multiaddr
+ * URIs. Use HTTP in p2p networks.
  *
  * @example
  *
+ * See the `examples/` for full examples of how to use the HTTP service.
  * ```typescript
- * import { noise } from '@chainsafe/libp2p-noise'
- * import { yamux } from '@chainsafe/libp2p-yamux'
- * import { mplex } from '@libp2p/mplex'
- * import { tcp } from '@libp2p/tcp'
- * import { createLibp2p, type Libp2p } from 'libp2p'
- * import { plaintext } from '@libp2p/plaintext'
- * import { perf, type Perf } from '@libp2p/perf'
- *
- * const ONE_MEG = 1024 * 1024
- * const UPLOAD_BYTES = ONE_MEG * 1024
- * const DOWNLOAD_BYTES = ONE_MEG * 1024
- *
- * async function createNode (): Promise<Libp2p<{ perf: Perf }>> {
- *   return createLibp2p({
- *     addresses: {
- *       listen: [
- *         '/ip4/0.0.0.0/tcp/0'
- *       ]
- *     },
- *     transports: [
- *       tcp()
- *     ],
- *     connectionEncryption: [
- *       noise(), plaintext()
- *     ],
- *     streamMuxers: [
- *       yamux(), mplex()
- *     ],
+ * const node = await createLibp2p({
+ *     // other options ...
  *     services: {
  *       http: http()
  *     }
  *   })
  * }
  *
- * const libp2p1 = await createNode()
- * const libp2p2 = await createNode()
+ * await node.start()
  *
- * // TODO
+ * // Make an http request over a libp2p stream.
+ * const resp = await node.services.http.fetch('multiaddr:/dns4/localhost/tcp/1234')
+ * // Or a traditional HTTP request
+ * const resp = await node.services.http.fetch('multiaddr:/dns4/example.com/tcp/443/tls/http')
+ * // And of course, you can use the fetch API as you normally would
+ * const resp = await node.services.http.fetch('https://example.com')
  *
- * await libp2p1.stop()
- * await libp2p2.stop()
+ * // This gives you the accessiblity of the fetch API with the flexibility of using a p2p network.
  * ```
  */
 
