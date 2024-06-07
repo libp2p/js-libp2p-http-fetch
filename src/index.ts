@@ -55,6 +55,8 @@ import type { ComponentLogger } from '@libp2p/interface'
 import type { ConnectionManager, Registrar } from '@libp2p/interface-internal'
 import type { Multiaddr } from '@multiformats/multiaddr'
 
+export { WELL_KNOWN_PROTOCOLS } from './constants.js'
+
 /**
  * HTTP service interface.
  */

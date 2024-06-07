@@ -316,8 +316,8 @@ async function writeRequestToDuplex (s: Duplex<unknown, Uint8Array>, request: Re
   }
   const headers = request.headers
 
-  if (path === '') {
-    path = '/'
+  if (!path.startsWith('/')) {
+    path = `/${path}`
   }
   let httpRequest = `${method} ${path} HTTP/1.1${CRLF}`
 

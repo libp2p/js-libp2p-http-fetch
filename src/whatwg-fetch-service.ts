@@ -1,12 +1,11 @@
 import { multiaddr, protocols, type Multiaddr } from '@multiformats/multiaddr'
 import { multiaddrToUri } from '@multiformats/multiaddr-to-uri'
-import { PROTOCOL_NAME } from './constants.js'
+import { PROTOCOL_NAME, WELL_KNOWN_PROTOCOLS } from './constants.js'
 import { fetchViaDuplex, handleRequestViaDuplex, type HTTPHandler } from './fetch/index.js'
 import type { CustomHTTPHandlerInit, FetchComponents, HTTPInit, HTTP as WHATWGFetchInterface } from './index.js'
 import type { Logger, Startable } from '@libp2p/interface'
 import type { IncomingStreamData } from '@libp2p/interface-internal'
 
-const wellKnownProtocols = '/.well-known/libp2p/protocols'
 const multiaddrURIPrefix = 'multiaddr:'
 
 type ProtocolID = string
@@ -81,7 +80,7 @@ export class WHATWGFetch implements Startable, WHATWGFetchInterface {
   private async defaultMuxer (req: Request): Promise<Response> {
     try {
       const url = new URL(req.url)
-      if (url.pathname === wellKnownProtocols) {
+      if (url.pathname === WELL_KNOWN_PROTOCOLS) {
         return await this.serveWellKnownProtocols(req)
       }
       for (const p of this.myProtosSortedByLength) {
@@ -128,8 +127,8 @@ export class WHATWGFetch implements Startable, WHATWGFetchInterface {
           code === protocols('http-path').code
         ) ?? ['', '']
         let path = decodeURIComponent(httpPathVal ?? '')
-        if (path === '') {
-          path = '/'
+        if (!path.startsWith('/')) {
+          path = `/${path}`
         }
         const reqUrl = `${multiaddrToUri(peerWithoutHTTPPath)}${path}`
         // We want to make a request over native fetch, so we need to copy the
@@ -206,12 +205,12 @@ export class WHATWGFetch implements Startable, WHATWGFetchInterface {
     let reqUrl = ''
     if (this.isHTTPTransportMultiaddr(peer)) {
       fetch = this._fetch
-      reqUrl = `${multiaddrToUri(peer)}${wellKnownProtocols}`
+      reqUrl = `${multiaddrToUri(peer)}${WELL_KNOWN_PROTOCOLS}`
     } else {
       const conn = await this.components.connectionManager.openConnection(peer)
       const s = await conn.newStream(PROTOCOL_NAME)
       fetch = fetchViaDuplex(s)
-      reqUrl = multiaddrURIPrefix + peer.encapsulate(`/http-path/${encodeURIComponent(wellKnownProtocols)}`).toString()
+      reqUrl = multiaddrURIPrefix + peer.encapsulate(`/http-path/${encodeURIComponent(WELL_KNOWN_PROTOCOLS)}`).toString()
     }
     const resp = await fetch(new Request(reqUrl, {
       method: 'GET',
