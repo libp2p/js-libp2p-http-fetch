@@ -27,21 +27,28 @@ TODO (need to publish this)
 
 See the `examples/` for full examples of how to use the HTTP service.
 ```typescript
-const node = await createLibp2p({
-    // other options ...
-    services: {
-        http: http()
-    }
-})
-
-await node.start()
-
-// Make an http request to a libp2p peer
-const resp = await node.services.http.fetch('multiaddr:/dns4/localhost/tcp/1234')
-// Or a traditional HTTP request
-const resp = await node.services.http.fetch('multiaddr:/dns4/example.com/tcp/443/tls/http')
-// And of course, you can use the fetch API as you normally would
-const resp = await node.services.http.fetch('https://example.com')
-
-// This gives you the accessiblity of the fetch API with the flexibility of using a p2p network.
+ import { createLibp2p } from 'libp2p'
+ import { http } from '../dist/src/index.js'
+ 
+ async function main () {
+ const node = await createLibp2p({
+     // other options ...
+     services: {
+       http: http()
+     }
+ })
+ 
+ await node.start()
+ 
+ // Make an http request to a libp2p peer
+ let resp = await node.services.http.fetch('multiaddr:/dns4/localhost/tcp/1234')
+ // Or a traditional HTTP request
+ resp = await node.services.http.fetch('multiaddr:/dns4/example.com/tcp/443/tls/http')
+ // And of course, you can use the fetch API as you normally would
+ resp = await node.services.http.fetch('https://example.com')
+ 
+ // This gives you the accessiblity of the fetch API with the flexibility of using a p2p network.
+ }
+ 
+ main()
 ```
