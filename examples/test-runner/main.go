@@ -27,7 +27,7 @@ func runTest(hasProxy bool) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	serverCmd, serverMultiaddr, err := runServer(ctx)
+	serverCmd, serverMultiaddrs, err := runServer(ctx)
 	if err != nil {
 		return err
 	}
@@ -36,11 +36,11 @@ func runTest(hasProxy bool) error {
 		defer wg.Done()
 		serverCmd.Wait()
 	}()
-	log.Println(serverMultiaddr)
+	log.Println("server multiaddrs read:", serverMultiaddrs)
 
 	if hasProxy {
 		buildProxy()
-		cmd, proxyAddr, err := runProxy(ctx, serverMultiaddr)
+		cmd, proxyAddr, err := runProxy(ctx, serverMultiaddrs[0]) // Only proxy the first
 		if err != nil {
 			return err
 		}
@@ -53,10 +53,16 @@ func runTest(hasProxy bool) error {
 		return runClient(proxyAddr)
 	}
 
-	return runClient(serverMultiaddr)
+	for _, serverMultiaddr := range serverMultiaddrs {
+		err := runClient(serverMultiaddr)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func runServer(ctx context.Context) (*exec.Cmd, string, error) {
+func runServer(ctx context.Context) (*exec.Cmd, []string, error) {
 	serverCmd := exec.CommandContext(ctx, "node", "server.mjs")
 	serverCmd.Stderr = os.Stderr
 	serverCmd.Cancel = func() error {
@@ -65,16 +71,25 @@ func runServer(ctx context.Context) (*exec.Cmd, string, error) {
 	}
 	stdoutPipe, err := serverCmd.StdoutPipe()
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 
 	serverCmd.Start()
+
+	addrs := make([]string, 0, 2)
 	bufReader := bufio.NewReader(stdoutPipe)
-	s, err := bufReader.ReadString('\n')
-	if err != nil {
-		return nil, "", err
+	for {
+		s, err := bufReader.ReadString('\n')
+		if err != nil {
+			return nil, nil, err
+		}
+		s = s[:len(s)-1] // Remove newline
+		if s == "" {
+			break
+		}
+		addrs = append(addrs, s)
 	}
-	return serverCmd, s, nil
+	return serverCmd, addrs, nil
 }
 
 func runClient(serverMultiaddr string) error {

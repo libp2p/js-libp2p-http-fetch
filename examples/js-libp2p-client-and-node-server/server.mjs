@@ -12,4 +12,5 @@ server.listen(port, () => {
   // Print multiaddr on stdout for test
   console.error("Server's multiaddr is:")
   console.log(`/dns4/localhost/tcp/${port}/http`)
+  console.log("") // Empty line to signal we have no more addresses (for test runner)
 });

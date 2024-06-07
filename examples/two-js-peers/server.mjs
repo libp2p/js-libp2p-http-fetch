@@ -24,6 +24,7 @@ console.error('libp2p has started')
 const listenAddrs = node.getMultiaddrs()
 console.error('libp2p is listening on the following address:')
 console.log(listenAddrs[0].toString())
+console.log("") // Empty line to signal we have no more addresses (for test runner)
 
 node.services.http.handleHTTPProtocol(PING_PROTOCOL_ID, '/ping', servePing)
 
