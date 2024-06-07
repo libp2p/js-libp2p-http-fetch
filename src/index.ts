@@ -20,7 +20,7 @@
  *
  * await node.start()
  *
- * // Make an http request over a libp2p stream.
+ * // Make an http request to a libp2p peer
  * const resp = await node.services.http.fetch('multiaddr:/dns4/localhost/tcp/1234')
  * // Or a traditional HTTP request
  * const resp = await node.services.http.fetch('multiaddr:/dns4/example.com/tcp/443/tls/http')
