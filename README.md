@@ -1,9 +1,9 @@
-# @libp2p/whatwg-fetch
+# @libp2p/http-fetch
 
 [![libp2p.io](https://img.shields.io/badge/project-libp2p-yellow.svg?style=flat-square)](http://libp2p.io/)
 [![Discuss](https://img.shields.io/discourse/https/discuss.libp2p.io/posts.svg?style=flat-square)](https://discuss.libp2p.io)
-[![codecov](https://img.shields.io/codecov/c/github/libp2p/js-libp2p-whatwg-fetch.svg?style=flat-square)](https://codecov.io/gh/libp2p/js-libp2p-whatwg-fetch)
-[![CI](https://img.shields.io/github/actions/workflow/status/libp2p/js-libp2p-whatwg-fetch/main.yml?branch=main\&style=flat-square)](https://github.com/libp2p/js-libp2p-whatwg-fetch/actions/workflows/main.yml?query=branch%3Amain)
+[![codecov](https://img.shields.io/codecov/c/github/libp2p/js-libp2p-http-fetch.svg?style=flat-square)](https://codecov.io/gh/libp2p/js-libp2p-http-fetch)
+[![CI](https://img.shields.io/github/actions/workflow/status/libp2p/js-libp2p-http-fetch/main.yml?branch=main\&style=flat-square)](https://github.com/libp2p/js-libp2p-http-fetch/actions/workflows/main.yml?query=branch%3Amain)
 
 > Implementation of the WHATWG Fetch API on libp2p streams
 
@@ -35,7 +35,7 @@ See the `examples/` for full examples of how to use the HTTP service.
 
 ```typescript
 import { createLibp2p } from 'libp2p'
-import { http } from '@libp2p/whatwg-fetch'
+import { http } from '@libp2p/http-fetch'
 
 async function main () {
 const node = await createLibp2p({

@@ -11,7 +11,7 @@
  * See the `examples/` for full examples of how to use the HTTP service.
  * ```typescript
  * import { createLibp2p } from 'libp2p'
- * import { http } from '@libp2p/whatwg-fetch'
+ * import { http } from '@libp2p/http-fetch'
  *
  * async function main () {
  * const node = await createLibp2p({
