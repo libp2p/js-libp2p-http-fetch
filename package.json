@@ -1,16 +1,16 @@
 {
-  "name": "@libp2p/whatwg-fetch",
+  "name": "@libp2p/http-fetch",
   "version": "0.0.1",
   "description": "Implementation of the WHATWG Fetch API on libp2p streams",
   "author": "@marcopolo",
   "license": "Apache-2.0 OR MIT",
-  "homepage": "https://github.com/libp2p/js-libp2p-whatwg-fetch/",
+  "homepage": "https://github.com/libp2p/js-libp2p-http-fetch/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/libp2p/js-libp2p-whatwg-fetch/"
+    "url": "git+https://github.com/libp2p/js-libp2p-http-fetch/"
   },
   "bugs": {
-    "url": "https://github.com/libp2p/js-libp2p-whatwg-fetch/issues"
+    "url": "https://github.com/libp2p/js-libp2p-http-fetch/issues"
   },
   "publishConfig": {
     "access": "public",

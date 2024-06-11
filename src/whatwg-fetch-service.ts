@@ -31,7 +31,7 @@ export class WHATWGFetch implements Startable, WHATWGFetchInterface {
 
   constructor (components: FetchComponents, init: HTTPInit | (HTTPInit & CustomHTTPHandlerInit)) {
     this.components = components
-    this.log = components.logger.forComponent('libp2p:whatwg-fetch')
+    this.log = components.logger.forComponent('libp2p:http-fetch')
     this.started = false
     if (init.fetch != null) {
       this._fetch = init.fetch

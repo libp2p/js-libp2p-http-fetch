@@ -1,4 +1,4 @@
-module github.com/libp2p/libp2p-whatwg-fetch/examples/proxy
+module github.com/libp2p/js-libp2p-http-fetch/examples/proxy
 
 go 1.22.1
 
