@@ -28,6 +28,10 @@
     ".": {
       "types": "./dist/src/index.d.ts",
       "import": "./dist/src/index.js"
+    },
+    "./ping.js": {
+      "types": "./dist/src/ping.d.ts",
+      "import": "./dist/src/ping.js"
     }
   },
   "eslintConfig": {
