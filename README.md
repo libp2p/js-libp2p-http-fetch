@@ -63,27 +63,27 @@ main()
 # Install
 
 ```console
-$ npm i @libp2p/whatwg-fetch
+$ npm i @libp2p/http-fetch
 ```
 
 ## Browser `<script>` tag
 
-Loading this module through a script tag will make it's exports available as `Libp2pWhatwgFetch` in the global namespace.
+Loading this module through a script tag will make it's exports available as `Libp2pHttpFetch` in the global namespace.
 
 ```html
-<script src="https://unpkg.com/@libp2p/whatwg-fetch/dist/index.min.js"></script>
+<script src="https://unpkg.com/@libp2p/http-fetch/dist/index.min.js"></script>
 ```
 
 # API Docs
 
-- <https://libp2p.github.io/js-libp2p-whatwg-fetch>
+- <https://libp2p.github.io/js-libp2p-http-fetch>
 
 # License
 
 Licensed under either of
 
-- Apache 2.0, ([LICENSE-APACHE](https://github.com/libp2p/js-libp2p-whatwg-fetch/LICENSE-APACHE) / <http://www.apache.org/licenses/LICENSE-2.0>)
-- MIT ([LICENSE-MIT](https://github.com/libp2p/js-libp2p-whatwg-fetch/LICENSE-MIT) / <http://opensource.org/licenses/MIT>)
+- Apache 2.0, ([LICENSE-APACHE](https://github.com/libp2p/js-libp2p-http-fetch/LICENSE-APACHE) / <http://www.apache.org/licenses/LICENSE-2.0>)
+- MIT ([LICENSE-MIT](https://github.com/libp2p/js-libp2p-http-fetch/LICENSE-MIT) / <http://opensource.org/licenses/MIT>)
 
 # Contribution
 
