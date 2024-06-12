@@ -2,8 +2,8 @@ import { noise } from '@chainsafe/libp2p-noise'
 import { yamux } from '@chainsafe/libp2p-yamux'
 import { tcp } from '@libp2p/tcp'
 import { createLibp2p } from 'libp2p'
-import { http } from '../../dist/src/index.js'
-import { PING_PROTOCOL_ID, servePing } from '../../dist/src/ping.js'
+import { http } from '@libp2p/http-fetch'
+import { PING_PROTOCOL_ID, servePing } from '@libp2p/http-fetch/ping.js'
 
 const node = await createLibp2p({
   // libp2p nodes are started by default, pass false to override this

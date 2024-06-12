@@ -5,6 +5,7 @@
     "@chainsafe/libp2p-noise": "^15.0.0",
     "@chainsafe/libp2p-yamux": "^6.0.2",
     "@hono/node-server": "^1.11.2",
+    "@libp2p/http-fetch": "file:..",
     "@libp2p/tcp": "^9.0.26",
     "@multiformats/multiaddr": "^12.3.0",
     "@multiformats/multiaddr-to-uri": "^10.1.0",
