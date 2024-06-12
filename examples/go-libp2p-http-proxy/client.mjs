@@ -3,8 +3,7 @@ import { multiaddr } from '@multiformats/multiaddr'
 import { yamux } from '@chainsafe/libp2p-yamux'
 import { tcp } from '@libp2p/tcp'
 import { createLibp2p } from 'libp2p'
-import { http } from '../../dist/src/index.js'
-import { sendPing } from '../../dist/src/ping.js'
+import { http } from '@libp2p/http-fetch'
 
 const node = await createLibp2p({
     // libp2p nodes are started by default, pass false to override this
