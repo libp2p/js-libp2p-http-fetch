@@ -5,6 +5,7 @@ import { tcp } from '@libp2p/tcp'
 import { createLibp2p } from 'libp2p'
 import { http } from '@libp2p/http-fetch'
 import { sendPing } from  '@libp2p/http-fetch/ping.js'
+import { peerIdFromString } from '@libp2p/peer-id'
 
 const node = await createLibp2p({
   // libp2p nodes are started by default, pass false to override this
@@ -41,8 +42,7 @@ if (!isHTTPTransport && serverMA.getPeerId() === null) {
 
 console.error("Making request to", `${serverMA.toString()}`)
 try {
-  await sendPing(node, multiaddr(serverMA))
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 2; i++) {
     const start = new Date().getTime()
     await sendPing(node, serverMA)
     const end = new Date().getTime()
@@ -50,6 +50,17 @@ try {
     console.log(end - start)
     // sleep 1s
     await new Promise(resolve => setTimeout(resolve, 1000))
+  }
+
+  // Making a request using only the server's peer id works too, but only in the
+  // non-http transport case. PeerIDs on an HTTP Transport is not implemented
+  // yet see https://github.com/libp2p/specs/pull/564.
+  if (!isHTTPTransport) {
+    const start = new Date().getTime()
+    await sendPing(node, peerIdFromString(serverMA.getPeerId()))
+    const end = new Date().getTime()
+    console.error("Got response! took", end - start, "ms")
+    console.log(end - start)
   }
 } finally {
   await node.stop()
