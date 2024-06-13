@@ -38,7 +38,7 @@
  */
 
 import { WHATWGFetch, type ProtosMap } from './whatwg-fetch-service.js'
-import type { ComponentLogger } from '@libp2p/interface'
+import type { ComponentLogger, PeerId } from '@libp2p/interface'
 import type { ConnectionManager, Registrar } from '@libp2p/interface-internal'
 import type { Multiaddr } from '@multiformats/multiaddr'
 
@@ -52,10 +52,10 @@ export interface HTTP {
 
   // Uses the peer's .well-known endpoint to find where it hosts a given protocol.
   // Throws an error if the peer does not serve the protocol.
-  prefixForProtocol (peer: Multiaddr, protocol: string): Promise<string>
+  prefixForProtocol (peer: PeerId | Multiaddr, protocol: string): Promise<string>
 
   // Get the .well-known protocols for a peer.
-  getPeerMeta (peer: Multiaddr): Promise<ProtosMap>
+  getPeerMeta (peer: PeerId | Multiaddr): Promise<ProtosMap>
 
   // handleHTTPProtocol registers a handler for the given protocol on the given path. This is incompatible with a customHTTPHandler.
   handleHTTPProtocol (protocol: string, path: string, handler: (req: Request) => Promise<Response>): void
