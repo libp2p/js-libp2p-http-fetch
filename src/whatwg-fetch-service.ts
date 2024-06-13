@@ -9,7 +9,7 @@ import type { IncomingStreamData } from '@libp2p/interface-internal'
 const multiaddrURIPrefix = 'multiaddr:'
 
 type ProtocolID = string
-type ProtosMap = Record<ProtocolID, { path: string }>
+export type ProtosMap = Record<ProtocolID, { path: string }>
 type ProtoHandlers = Record<ProtocolID, HTTPHandler>
 
 export class WHATWGFetch implements Startable, WHATWGFetchInterface {
@@ -192,13 +192,10 @@ export class WHATWGFetch implements Startable, WHATWGFetchInterface {
     this.protoHandlers[protocol] = handler
   }
 
-  async prefixForProtocol (peer: Multiaddr, protocol: string): Promise<string> {
+  async getPeerMeta (peer: Multiaddr): Promise<ProtosMap> {
     const cached = this.wellKnownProtosCache.get(peer)
     if (cached !== undefined) {
-      if (cached[protocol] == null) {
-        throw new Error(`Peer does not serve protocol: ${protocol}`)
-      }
-      return cached[protocol].path
+      return cached
     }
 
     let fetch
@@ -223,6 +220,11 @@ export class WHATWGFetch implements Startable, WHATWGFetchInterface {
     }
     const peerMeta = await resp.json()
     this.wellKnownProtosCache.set(peer, peerMeta)
+    return peerMeta
+  }
+
+  async prefixForProtocol (peer: Multiaddr, protocol: string): Promise<string> {
+    const peerMeta = await this.getPeerMeta(peer)
     if (peerMeta[protocol] == null) {
       throw new Error(`Peer does not serve protocol: ${protocol}`)
     }
