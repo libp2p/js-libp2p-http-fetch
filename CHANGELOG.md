@@ -1,3 +1,15 @@
+## [1.1.0](https://github.com/libp2p/js-libp2p-http-fetch/compare/v1.0.0...v1.1.0) (2024-06-13)
+
+
+### Features
+
+* Add getPeerMeta method ([303410e](https://github.com/libp2p/js-libp2p-http-fetch/commit/303410ec7ca566df8fc19a267809ef264b0332c8))
+
+
+### Trivial Changes
+
+* Remove debug logging ([2806d9e](https://github.com/libp2p/js-libp2p-http-fetch/commit/2806d9eca5ed9f06489ba5af7d0d017d333c4ec5))
+
 ## 1.0.0 (2024-06-12)
 
 
