@@ -134,7 +134,6 @@ describe('Make a fetch request via duplex', () => {
         // We don't use anything but HTTP/1.1
         continue
       }
-      console.log('Testing case: ', httpCase.name)
       const [client, server] = duplexPair<Uint8Array | Uint8ArrayList>()
       // Request doesn't matter
       const respPromise = fetchViaDuplex(client)(new Request('http://example.com/'))
@@ -182,7 +181,6 @@ describe('Make a fetch request via duplex', () => {
         // We don't use anything but HTTP/1.1
         continue
       }
-      console.log('Testing case: ', httpCase.name)
       const [client, server] = duplexPair<Uint8Array | Uint8ArrayList>()
       // Request doesn't matter
       const respPromise = fetchViaDuplex(client)(new Request('http://example.com/'))
