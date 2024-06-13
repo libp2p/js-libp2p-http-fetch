@@ -1,15 +1,15 @@
+import { isPeerId, type Logger, type PeerId, type Startable } from '@libp2p/interface'
 import { multiaddr, protocols, type Multiaddr } from '@multiformats/multiaddr'
 import { multiaddrToUri } from '@multiformats/multiaddr-to-uri'
 import { PROTOCOL_NAME, WELL_KNOWN_PROTOCOLS } from './constants.js'
 import { fetchViaDuplex, handleRequestViaDuplex, type HTTPHandler } from './fetch/index.js'
 import type { CustomHTTPHandlerInit, FetchComponents, HTTPInit, HTTP as WHATWGFetchInterface } from './index.js'
-import type { Logger, Startable } from '@libp2p/interface'
 import type { IncomingStreamData } from '@libp2p/interface-internal'
 
 const multiaddrURIPrefix = 'multiaddr:'
 
 type ProtocolID = string
-type ProtosMap = Record<ProtocolID, { path: string }>
+export type ProtosMap = Record<ProtocolID, { path: string }>
 type ProtoHandlers = Record<ProtocolID, HTTPHandler>
 
 export class WHATWGFetch implements Startable, WHATWGFetchInterface {
@@ -192,25 +192,33 @@ export class WHATWGFetch implements Startable, WHATWGFetchInterface {
     this.protoHandlers[protocol] = handler
   }
 
-  async prefixForProtocol (peer: Multiaddr, protocol: string): Promise<string> {
-    const cached = this.wellKnownProtosCache.get(peer)
-    if (cached !== undefined) {
-      if (cached[protocol] == null) {
-        throw new Error(`Peer does not serve protocol: ${protocol}`)
+  async getPeerMeta (peerOrMultiaddr: PeerId | Multiaddr): Promise<ProtosMap> {
+    const peerAddr: Multiaddr = isPeerId(peerOrMultiaddr) ? multiaddr(`/p2p/${peerOrMultiaddr.toString()}`) : peerOrMultiaddr
+    let cacheKey = peerAddr
+
+    if (!isPeerId(peerOrMultiaddr)) {
+      const peerIdStr = peerAddr.getPeerId()
+      if (peerIdStr !== null) {
+        // If we have a peer ID, we should use it as the key, since the same peer can have multiple addresses
+        cacheKey = multiaddr(`/p2p/${peerIdStr}`)
       }
-      return cached[protocol].path
+    }
+
+    const cached = this.wellKnownProtosCache.get(cacheKey)
+    if (cached !== undefined) {
+      return cached
     }
 
     let fetch
     let reqUrl = ''
-    if (this.isHTTPTransportMultiaddr(peer)) {
+    if (this.isHTTPTransportMultiaddr(peerAddr)) {
       fetch = this._fetch
-      reqUrl = `${multiaddrToUri(peer)}${WELL_KNOWN_PROTOCOLS}`
+      reqUrl = `${multiaddrToUri(peerAddr)}${WELL_KNOWN_PROTOCOLS}`
     } else {
-      const conn = await this.components.connectionManager.openConnection(peer)
+      const conn = await this.components.connectionManager.openConnection(peerAddr)
       const s = await conn.newStream(PROTOCOL_NAME)
       fetch = fetchViaDuplex(s)
-      reqUrl = multiaddrURIPrefix + peer.encapsulate(`/http-path/${encodeURIComponent(WELL_KNOWN_PROTOCOLS)}`).toString()
+      reqUrl = multiaddrURIPrefix + peerAddr.encapsulate(`/http-path/${encodeURIComponent(WELL_KNOWN_PROTOCOLS)}`).toString()
     }
     const resp = await fetch(new Request(reqUrl, {
       method: 'GET',
@@ -222,7 +230,12 @@ export class WHATWGFetch implements Startable, WHATWGFetchInterface {
       throw new Error(`Unexpected status code: ${resp.status}`)
     }
     const peerMeta = await resp.json()
-    this.wellKnownProtosCache.set(peer, peerMeta)
+    this.wellKnownProtosCache.set(cacheKey, peerMeta)
+    return peerMeta
+  }
+
+  async prefixForProtocol (peer: PeerId | Multiaddr, protocol: string): Promise<string> {
+    const peerMeta = await this.getPeerMeta(peer)
     if (peerMeta[protocol] == null) {
       throw new Error(`Peer does not serve protocol: ${protocol}`)
     }

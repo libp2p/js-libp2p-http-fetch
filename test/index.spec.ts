@@ -1,8 +1,9 @@
 /* eslint-env mocha */
 
-import { start, stop } from '@libp2p/interface'
+import { isPeerId, start, stop } from '@libp2p/interface'
 import { streamPair } from '@libp2p/interface-compliance-tests/mocks'
 import { defaultLogger } from '@libp2p/logger'
+import { peerIdFromString } from '@libp2p/peer-id'
 import { multiaddr, type Multiaddr, type Protocol } from '@multiformats/multiaddr'
 import { duplexPair } from 'it-pair/duplex'
 import { type Libp2p } from 'libp2p'
@@ -10,7 +11,7 @@ import pDefer from 'p-defer'
 import { stubInterface, type StubbedInstance } from 'sinon-ts'
 import { http, type HTTP } from '../src/index.js'
 import * as ping from '../src/ping.js'
-import type { ComponentLogger, Connection, StreamHandler } from '@libp2p/interface'
+import type { ComponentLogger, Connection, PeerId, StreamHandler } from '@libp2p/interface'
 import type { ConnectionManager, Registrar } from '@libp2p/interface-internal'
 
 interface StubbedHTTPComponents {
@@ -32,7 +33,8 @@ describe('whatwg-fetch', () => {
   let clientComponents: StubbedHTTPComponents
   let server: HTTP
   let client: HTTP
-  const serverMultiaddr: Multiaddr = multiaddr('/ip4/1.2.3.4/tcp/1234')
+  const serverPeerID: PeerId = peerIdFromString('12D3KooWJRSrypvnpHgc6ZAgyCni4KcSmbV7uGRaMw5LgMKT18fq')
+  const serverMultiaddr: Multiaddr = multiaddr('/ip4/1.2.3.4/tcp/1234' + '/p2p/' + serverPeerID.toString())
 
   beforeEach(async () => {
     serverComponents = createComponents()
@@ -55,8 +57,8 @@ describe('whatwg-fetch', () => {
       return streams[1]
     })
 
-    clientComponents.connectionManager.openConnection.callsFake(async (peer: Multiaddr, options?: any) => {
-      if (peer.toString() === serverMultiaddr.toString()) {
+    clientComponents.connectionManager.openConnection.callsFake(async (peer: PeerId | Multiaddr, options?: any) => {
+      if (isPeerId(peer) ? peer.equals(serverPeerID) : peer.getPeerId() === serverMultiaddr.getPeerId()) {
         await serverCBRegistered.promise
         return conn
       }
@@ -83,5 +85,14 @@ describe('whatwg-fetch', () => {
     const clientNode = stubInterface<Libp2p<{ http: HTTP }>>({ services: { http: client } })
 
     await ping.sendPing(clientNode, serverMultiaddr)
+  })
+
+  it('Standard ping roundtrip with peer id', async () => {
+    // Mount the ping handler on the server under /ping
+    server.handleHTTPProtocol(ping.PING_PROTOCOL_ID, '/ping', ping.servePing)
+
+    const clientNode = stubInterface<Libp2p<{ http: HTTP }>>({ services: { http: client } })
+
+    await ping.sendPing(clientNode, serverPeerID)
   })
 })

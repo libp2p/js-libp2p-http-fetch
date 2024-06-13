@@ -1,7 +1,7 @@
 // http-ping implementation
-import { type Multiaddr } from '@multiformats/multiaddr'
+import { isPeerId, type Libp2p, type PeerId } from '@libp2p/interface'
+import { multiaddr, type Multiaddr } from '@multiformats/multiaddr'
 import type { HTTP } from './index.js'
-import type { Libp2p } from '@libp2p/interface'
 
 const PING_SIZE = 32
 export const PING_PROTOCOL_ID = '/http-ping/1'
@@ -32,14 +32,15 @@ export async function servePing (req: Request): Promise<Response> {
  * Send a ping request to a peer
  *
  * @param node - a libp2p node
- * @param peer - A peer's multiaddr
+ * @param peerIdOrMultiaddr - Target peer
  */
-export async function sendPing (node: Libp2p<{ http: HTTP }>, peer: Multiaddr): Promise<void> {
+export async function sendPing (node: Libp2p<{ http: HTTP }>, peerIdOrMultiaddr: PeerId | Multiaddr): Promise<void> {
+  const peerAddr: Multiaddr = isPeerId(peerIdOrMultiaddr) ? multiaddr(`/p2p/${peerIdOrMultiaddr.toString()}`) : peerIdOrMultiaddr
   const buf = new Uint8Array(PING_SIZE)
   // Fill buffer with random data
   crypto.getRandomValues(buf)
-  const pingEndpoint = await node.services.http.prefixForProtocol(peer, PING_PROTOCOL_ID)
-  const requestURL = 'multiaddr:' + peer.encapsulate(`/http-path/${encodeURIComponent(pingEndpoint)}`).toString()
+  const pingEndpoint = await node.services.http.prefixForProtocol(peerAddr, PING_PROTOCOL_ID)
+  const requestURL = 'multiaddr:' + peerAddr.encapsulate(`/http-path/${encodeURIComponent(pingEndpoint)}`).toString()
 
   const resp = await node.services.http.fetch(new Request(requestURL, {
     method: 'POST',
