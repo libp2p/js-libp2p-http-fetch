@@ -32,7 +32,7 @@ export async function servePing (req: Request): Promise<Response> {
  * Send a ping request to a peer
  *
  * @param node - a libp2p node
- * @param peer - Target peer
+ * @param peerIdOrMultiaddr - Target peer
  */
 export async function sendPing (node: Libp2p<{ http: HTTP }>, peerIdOrMultiaddr: PeerId | Multiaddr): Promise<void> {
   const peerAddr: Multiaddr = isPeerId(peerIdOrMultiaddr) ? multiaddr(`/p2p/${peerIdOrMultiaddr.toString()}`) : peerIdOrMultiaddr
