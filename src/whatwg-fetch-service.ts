@@ -123,6 +123,9 @@ export class WHATWGFetch implements Startable, WHATWGFetchInterface {
       const peerWithoutHTTPPath = ma.decapsulateCode(protocols('http-path').code)
 
       if (this.isHTTPTransportMultiaddr(peerWithoutHTTPPath)) {
+        if (peerWithoutHTTPPath.getPeerId() !== null) {
+          throw new Error('HTTP Transport does not yet support peer IDs. Use a stream based transport instead.')
+        }
         const [, httpPathVal] = ma.stringTuples().find(([code]) =>
           code === protocols('http-path').code
         ) ?? ['', '']
@@ -166,7 +169,13 @@ export class WHATWGFetch implements Startable, WHATWGFetchInterface {
       throw new Error('peer multiaddr must have at least one part')
     }
 
-    return parts[parts.length - 1].name === 'http' || parts[parts.length - 1].name === 'https'
+    // Reverse order for faster common case (/http is near the end)
+    for (let i = parts.length - 1; i >= 0; i--) {
+      if (parts[i].name === 'http' || parts[i].name === 'https') {
+        return true
+      }
+    }
+    return false
   }
 
   // Register a protocol with a path and remember it so we can tell our peers
@@ -212,6 +221,9 @@ export class WHATWGFetch implements Startable, WHATWGFetchInterface {
     let fetch
     let reqUrl = ''
     if (this.isHTTPTransportMultiaddr(peerAddr)) {
+      if (peerAddr.getPeerId() !== null) {
+        throw new Error('HTTP Transport does not yet support peer IDs. Use a stream based transport instead.')
+      }
       fetch = this._fetch
       reqUrl = `${multiaddrToUri(peerAddr)}${WELL_KNOWN_PROTOCOLS}`
     } else {
