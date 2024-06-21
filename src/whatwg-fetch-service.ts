@@ -218,21 +218,8 @@ export class WHATWGFetch implements Startable, WHATWGFetchInterface {
       return cached
     }
 
-    let fetch
-    let reqUrl = ''
-    if (this.isHTTPTransportMultiaddr(peerAddr)) {
-      if (peerAddr.getPeerId() !== null) {
-        throw new Error('HTTP Transport does not yet support peer IDs. Use a stream based transport instead.')
-      }
-      fetch = this._fetch
-      reqUrl = `${multiaddrToUri(peerAddr)}${WELL_KNOWN_PROTOCOLS}`
-    } else {
-      const conn = await this.components.connectionManager.openConnection(peerAddr)
-      const s = await conn.newStream(PROTOCOL_NAME)
-      fetch = fetchViaDuplex(s)
-      reqUrl = multiaddrURIPrefix + peerAddr.encapsulate(`/http-path/${encodeURIComponent(WELL_KNOWN_PROTOCOLS)}`).toString()
-    }
-    const resp = await fetch(new Request(reqUrl, {
+    const reqUrl = multiaddrURIPrefix + peerAddr.encapsulate(`/http-path/${encodeURIComponent(WELL_KNOWN_PROTOCOLS)}`).toString()
+    const resp = await this.fetch(new Request(reqUrl, {
       method: 'GET',
       headers: {
         Accept: 'application/json'
