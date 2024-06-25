@@ -5,6 +5,7 @@ import { streamPair } from '@libp2p/interface-compliance-tests/mocks'
 import { defaultLogger } from '@libp2p/logger'
 import { peerIdFromString } from '@libp2p/peer-id'
 import { multiaddr, type Multiaddr, type Protocol } from '@multiformats/multiaddr'
+import { expect } from 'aegir/chai'
 import { duplexPair } from 'it-pair/duplex'
 import { type Libp2p } from 'libp2p'
 import pDefer from 'p-defer'
@@ -94,5 +95,11 @@ describe('whatwg-fetch', () => {
     const clientNode = stubInterface<Libp2p<{ http: HTTP }>>({ services: { http: client } })
 
     await ping.sendPing(clientNode, serverPeerID)
+  })
+
+  it('Throws an error if using an http transport with a peer id component', async () => {
+    const clientNode = stubInterface<Libp2p<{ http: HTTP }>>({ services: { http: client } })
+
+    await expect(ping.sendPing(clientNode, multiaddr('/ip4/127.0.0.1/http/p2p/' + serverPeerID.toString()))).to.be.rejectedWith('HTTP Transport does not yet support peer IDs')
   })
 })
