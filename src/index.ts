@@ -48,7 +48,7 @@ export { WELL_KNOWN_PROTOCOLS } from './constants.js'
  * HTTP service interface.
  */
 export interface HTTP {
-  fetch(request: string | Request, requestInit?: RequestInit): Promise<Response>
+  fetch(request: RequestInfo, requestInit?: RequestInit): Promise<Response>
 
   // Uses the peer's .well-known endpoint to find where it hosts a given protocol.
   // Throws an error if the peer does not serve the protocol.
