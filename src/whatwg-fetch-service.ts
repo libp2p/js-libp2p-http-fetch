@@ -3,13 +3,15 @@ import { multiaddr, protocols, type Multiaddr } from '@multiformats/multiaddr'
 import { multiaddrToUri } from '@multiformats/multiaddr-to-uri'
 import { PROTOCOL_NAME, WELL_KNOWN_PROTOCOLS } from './constants.js'
 import { fetchViaDuplex, handleRequestViaDuplex, type HTTPHandler } from './fetch/index.js'
+import { WellKnownHandler, type ProtosMap } from './well-known-handler.js'
 import type { CustomHTTPHandlerInit, FetchComponents, HTTPInit, HTTP as WHATWGFetchInterface } from './index.js'
 import type { IncomingStreamData } from '@libp2p/interface-internal'
+
+export type { ProtosMap } from './well-known-handler.js'
 
 const multiaddrURIPrefix = 'multiaddr:'
 
 type ProtocolID = string
-export type ProtosMap = Record<ProtocolID, { path: string }>
 type ProtoHandlers = Record<ProtocolID, HTTPHandler>
 
 export class WHATWGFetch implements Startable, WHATWGFetchInterface {
@@ -20,7 +22,7 @@ export class WHATWGFetch implements Startable, WHATWGFetchInterface {
   private readonly _fetch: (request: Request) => Promise<Response>
   private readonly customHTTPHandler?: (request: Request) => Promise<Response>
   private readonly wellKnownProtosCache = new LRUCache<Multiaddr, ProtosMap>(100)
-  private readonly myWellKnownProtos: ProtosMap = {}
+  private readonly wellKnownHandler = new WellKnownHandler()
   // Used when matching paths to protocols. We match from most specific to least specific.
   private readonly myProtosSortedByLength: Array<{ proto: ProtocolID, path: string }> = []
   private readonly protoHandlers: ProtoHandlers = {}
@@ -101,11 +103,7 @@ export class WHATWGFetch implements Startable, WHATWGFetchInterface {
   }
 
   async serveWellKnownProtocols (req: Request): Promise<Response> {
-    return new Response(JSON.stringify(this.myWellKnownProtos), {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
+    return this.wellKnownHandler.handleRequest(req)
   }
 
   async fetch (request: string | Request, requestInit?: RequestInit): Promise<Response> {
@@ -187,11 +185,7 @@ export class WHATWGFetch implements Startable, WHATWGFetchInterface {
     if (!path.startsWith('/')) {
       path = `/${path}`
     }
-
-    if (this.myWellKnownProtos[protocol] != null) {
-      throw new Error(`Protocol ${protocol} already registered`)
-    }
-    this.myWellKnownProtos[protocol] = { path }
+    this.wellKnownHandler.registerProtocol(protocol, path)
     this.myProtosSortedByLength.push({ proto: protocol, path })
     this.myProtosSortedByLength.sort(({ path: a }, { path: b }) => b.length - a.length)
   }

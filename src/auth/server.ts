@@ -139,6 +139,14 @@ export class ServerAuth {
   }
 
   public async unwrapBearerToken (expectedHostname: string, token: string): Promise<PeerId> {
+    if (token.startsWith(BearerAuthScheme)) {
+      // Parse the whole header for convenience (avoids having to have the caller do this)
+      const s = parseHeader(token).get(BearerAuthScheme)
+      if (s === undefined || s.scheme !== BearerAuthScheme) {
+        throw new Error('Invalid bearer token')
+      }
+      token = s.bearerToken
+    }
     const unwrapped = await this.verifyBox(this.key.public, token) as any
     if (typeof unwrapped.peer !== 'string' || typeof unwrapped.h !== 'string' || typeof unwrapped.t !== 'number') {
       throw new Error('Invalid bearer token')

@@ -96,6 +96,6 @@ export class ClientAuth {
     if (!this.tokens.has(hostname)) {
       throw new Error('No token for hostname')
     }
-    return formatHeader(BearerAuthScheme, { token: this.tokens.get(hostname) })
+    return `${BearerAuthScheme} ${this.tokens.get(hostname)}`
   }
 }
