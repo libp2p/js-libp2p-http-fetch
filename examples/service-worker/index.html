@@ -1,0 +1,38 @@
+<html>
+<h1>Minimal Service Worker Example</h1>
+
+<p>
+    This example proxies all HTTP requests to a libp2p peer. It uses a service
+    worker to intercept the browser's fetch requests and send them over a libp2p
+    stream transport.
+</p>
+
+<p>
+    Configure the peer you want to connect to by setting its multiaddr URI in
+    the hash component of the url. For example if you wanted to connect to the
+    peer at <code>/ip4/127.0.0.1/udp/4001/quic-v1/webtransport/...</code> you
+    would set the URL to <code>/#multiaddr:/ip4/127.0.0.1/udp/4001/quic-v1/webtransport/...</code>
+</p>
+
+<p>
+    From that point on, all requests will be proxied to that peer. To proxy it to a different peer, repeat the step or
+    set the URL to <a href="/#_reset"><code>/#_reset</code></a>
+</p>
+
+<p>
+    Here's another example (if this fails, this server is probably not up. Refer to the README on how to setup a
+    server): <br>
+    <a href="/#multiaddr:/ip4/127.0.0.1/udp/60136/quic-v1/webtransport/certhash/uEiAMGP37c0XxhsyNcEwro8zh_yEl7C9P9vL7q4pnoa3GvA/certhash/uEiAdZV5x8ZwGPwARbTQuUecL1vLF5dZ05dB76Q7Qf821mg/p2p/12D3KooWSNgLJZzF4djp11gsG1K6w51aZhGJWroTKte5kSMQHd3n"
+        onclick="setTimeout(() => location.reload(true), 0)">
+        /#multiaddr:multiaddr:/ip4/127.0.0.1/udp/64590/quic-v1/webtransport/...
+    </a>
+</p>
+
+<script type="module">
+    const sw = await navigator.serviceWorker.register('service-worker-bundled.js', {
+        type: 'module',
+        scope: '/',
+    });
+    console.log("Service Worker registered", sw)
+    console.log("Example fetch", await fetch("/ping"))
+</script>
