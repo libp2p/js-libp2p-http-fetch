@@ -85,7 +85,7 @@ export async function handleRequestViaDuplex (s: Duplex<Uint8Array | Uint8ArrayL
   await writeResponseToDuplex(s, resp)
 }
 
-const BUFFER_SIZE = 16 << 10
+const BUFFER_SIZE = 64 << 10
 
 /**
  * Exported for testing.
@@ -322,7 +322,7 @@ async function writeRequestToDuplex (s: Duplex<unknown, Uint8Array>, request: Re
   let httpRequest = `${method} ${path} HTTP/1.1${CRLF}`
 
   // Add Host header if not present
-  if (!headers.has('Host') && urlHost !== '') {
+  if (!headers.has('Host')) {
     httpRequest += `Host: ${urlHost}${CRLF}`
   }
   // Add connection close
