@@ -20,11 +20,19 @@
 </p>
 
 <p>
-    Here's another example (if this fails, this server is probably not up. Refer to the README on how to setup a
+    Here's an example (if this fails, this server is probably not up. Refer to the README on how to setup a
     server): <br>
     <a href="/#multiaddr:/ip4/127.0.0.1/udp/60136/quic-v1/webtransport/certhash/uEiAMGP37c0XxhsyNcEwro8zh_yEl7C9P9vL7q4pnoa3GvA/certhash/uEiAdZV5x8ZwGPwARbTQuUecL1vLF5dZ05dB76Q7Qf821mg/p2p/12D3KooWSNgLJZzF4djp11gsG1K6w51aZhGJWroTKte5kSMQHd3n"
-        onclick="setTimeout(() => location.reload(true), 0)">
-        /#multiaddr:multiaddr:/ip4/127.0.0.1/udp/64590/quic-v1/webtransport/...
+        onclick="setTimeout(() => location.reload(true), 100)">
+        /#multiaddr:/ip4/209.38.148.248/udp/64590/quic-v1/webtransport/...
+    </a>
+</p>
+
+<p>
+    Here's another example: <br>
+    <a href="/#multiaddr:/ip4/127.0.0.1/udp/62686/quic-v1/webtransport/certhash/uEiA-PUcxBrwS9gyF1k5ZMICqnrLKMLuUC7qyeHfL3EfHjA/certhash/uEiAk0Y7Qe8TeFrBjwEj-1FWW21tw9tk2ieCt0Yw8ahZsmw/p2p/12D3KooWBGT92P33tq1xFAb48B2WA1zizb23mdqYkeZYa9gSico3"
+        onclick="setTimeout(() => location.reload(true), 100)">
+        /#multiaddr:/ip4/209.38.148.248/udp/64591/quic-v1/webtransport/...
     </a>
 </p>
 
@@ -33,6 +41,4 @@
         type: 'module',
         scope: '/',
     });
-    console.log("Service Worker registered", sw)
-    console.log("Example fetch", await fetch("/ping"))
 </script>

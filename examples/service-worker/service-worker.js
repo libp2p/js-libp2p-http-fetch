@@ -62,7 +62,6 @@ function isResetURL (url) {
 let lastMultiaddr = null
 
 self.onfetch = async (event) => {
-  console.log('Got a fetch event for', event.request.url)
   if (isResetURL(event.request.url)) {
     lastMultiaddr = null
   }
