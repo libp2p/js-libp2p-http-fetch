@@ -144,7 +144,7 @@
   },
   "dependencies": {
     "@libp2p/interface": "^1.2.0",
-    "@libp2p/interface-internal": "^1.1.0",
+    "@libp2p/interface-internal": "^2.0.0",
     "@multiformats/multiaddr": "^12.3.0",
     "@multiformats/multiaddr-to-uri": "^10.1.0",
     "@perseveranza-pets/milo": "^0.2.1",
