@@ -158,3 +158,5 @@ jobs:
         working-directory: ./examples/js-libp2p-client-and-node-server/
       - run: ../test-runner/test-runner
         working-directory: ./examples/two-js-peers
+      - run: ./runTest.sh
+        working-directory: ./examples/peer-id-auth
