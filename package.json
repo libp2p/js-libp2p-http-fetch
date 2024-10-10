@@ -169,7 +169,7 @@
     "@libp2p/peer-id-factory": "^4.1.2",
     "aegir": "^43.0.1",
     "it-pair": "^2.0.6",
-    "libp2p": "^1.6.0",
+    "libp2p": "^2.0.2",
     "sinon-ts": "^2.0.0"
   },
   "sideEffects": false
