@@ -20,8 +20,8 @@ export interface AuthenticateServerOptions extends AbortOptions {
   fetch?: typeof globalThis.fetch
 
   /**
-   * The hostname to use - by default this will be extracted from the
-   * `authEndpointURI`
+   * The hostname to use - by default this will be extracted from the `.host`
+   * property of `authEndpointURI`
    */
   hostname?: string
 }
@@ -65,7 +65,7 @@ export class ClientAuth {
 
   public async authenticateServer (authEndpointURI: string | URL, options?: AuthenticateServerOptions): Promise<PeerId> {
     authEndpointURI = new URL(authEndpointURI)
-    const hostname = options?.hostname ?? authEndpointURI.hostname
+    const hostname = options?.hostname ?? authEndpointURI.host
 
     if (this.tokens.has(hostname)) {
       const token = this.tokens.get(hostname)

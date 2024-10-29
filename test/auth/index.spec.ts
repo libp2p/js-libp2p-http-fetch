@@ -38,6 +38,22 @@ describe('HTTP Peer ID Authentication', () => {
     expect(observedServerPeerId.equals(server)).to.be.true()
   })
 
+  it('Should mutually authenticate with a custom port', async () => {
+    const clientAuth = new ClientAuth(clientKey)
+    const serverAuth = new ServerAuth(serverKey, h => h === 'foobar:12345')
+
+    const fetch = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+      const req = new Request(input, init)
+      const resp = await serverAuth.httpHandler(req)
+      return resp
+    }
+
+    const observedServerPeerId = await clientAuth.authenticateServer('https://foobar:12345/auth', {
+      fetch
+    })
+    expect(observedServerPeerId.equals(server)).to.be.true()
+  })
+
   it('Should time out when authenticating', async () => {
     const clientAuth = new ClientAuth(clientKey)
 
