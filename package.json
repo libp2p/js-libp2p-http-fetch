@@ -167,7 +167,7 @@
     "release": "aegir release"
   },
   "dependencies": {
-    "@libp2p/crypto": "^4.1.2",
+    "@libp2p/crypto": "^5.0.6",
     "@libp2p/interface": "^1.2.0",
     "@libp2p/interface-internal": "^1.1.0",
     "@libp2p/peer-id": "^4.1.3",
