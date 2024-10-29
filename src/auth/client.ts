@@ -110,9 +110,6 @@ export class ClientAuth {
     if (serverAuthHeader == null) {
       throw new Error('No server auth header')
     }
-    if (resp2.status !== 200) {
-      throw new Error('Unexpected status code')
-    }
 
     const serverAuthFields = parseHeader(serverAuthHeader)
     const serverPublicKey = publicKeyFromProtobuf(serverPubKeyBytes)
