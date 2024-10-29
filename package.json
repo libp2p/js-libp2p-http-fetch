@@ -45,15 +45,15 @@
       "types": "./dist/src/index.d.ts",
       "import": "./dist/src/index.js"
     },
-    "./auth.js": {
+    "./auth": {
       "types": "./dist/src/auth/auth.d.ts",
       "import": "./dist/src/auth/auth.js"
     },
-    "./ping.js": {
+    "./ping": {
       "types": "./dist/src/ping.d.ts",
       "import": "./dist/src/ping.js"
     },
-    "./well-known-handler.js": {
+    "./well-known-handler": {
       "types": "./dist/src/well-known-handler.d.ts",
       "import": "./dist/src/well-known-handler.js"
     }
