@@ -1,3 +1,9 @@
+## [2.0.1](https://github.com/libp2p/js-libp2p-http-fetch/compare/v2.0.0...v2.0.1) (2024-10-29)
+
+### Bug Fixes
+
+* update export paths ([#42](https://github.com/libp2p/js-libp2p-http-fetch/issues/42)) ([ca914d3](https://github.com/libp2p/js-libp2p-http-fetch/commit/ca914d324410634b388da03ba2f2b933eb11c08b))
+
 ## [2.0.0](https://github.com/libp2p/js-libp2p-http-fetch/compare/v1.1.1...v2.0.0) (2024-10-29)
 
 ### ⚠ BREAKING CHANGES
