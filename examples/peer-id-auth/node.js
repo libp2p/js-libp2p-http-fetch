@@ -15,15 +15,8 @@ const args = process.argv.slice(2)
 if (args.length === 1 && args[0] === 'client') {
   // Client mode
   const client = new ClientAuth(privKey)
-  const observedPeerID = await client.authenticateServer('http://localhost:8001/auth')
-  console.log('Server ID:', observedPeerID.toString())
-
-  const authenticatedReq = new Request('http://localhost:8001/log-my-id', {
-    headers: {
-      Authorization: client.bearerAuthHeader('localhost:8001')
-    }
-  })
-  await fetch(authenticatedReq)
+  const { peer: serverID } = await client.authenticatedFetch(new Request('http://localhost:8001/log-my-id'), (id) => true)
+  console.log('Server ID:', serverID.toString())
   console.log('Client ID:', myID.toString())
   process.exit(0)
 }
@@ -42,15 +35,13 @@ app.all('/auth', (c) => {
 })
 wellKnownHandler.registerProtocol(HTTPPeerIDAuthProto, '/auth')
 
+const logMyIDHandler = httpServerAuth.withAuth(async (clientId, req) => {
+  console.log('Client ID:', clientId.toString())
+  return new Response('', { status: 200 })
+})
+
 app.all('/log-my-id', async (c) => {
-  try {
-    const id = await httpServerAuth.unwrapBearerToken('localhost:8001', c.req.header('Authorization'))
-    console.log('Client ID:', id.toString())
-  } catch (e) {
-    console.error(e)
-    return c.text(e.message, { status: 400 })
-  }
-  c.status(200)
+  return logMyIDHandler(addHeadersProxy(c.req))
 })
 wellKnownHandler.registerProtocol('/log-my-id/1', '/log-my-id')
 

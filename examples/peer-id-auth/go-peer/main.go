@@ -49,7 +49,7 @@ func runServer(privKey crypto.PrivKey) error {
 	http.Handle("/auth", auth)
 	wellKnown.AddProtocolMeta(httpauth.ProtocolID, libp2phttp.ProtocolMeta{Path: "/auth"})
 	auth.Next = func(clientID peer.ID, w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/log-my-id" {
+		if r.URL.Path == "/log-my-id" {
 			fmt.Println("Client ID:", clientID)
 		}
 		w.WriteHeader(200)
@@ -63,7 +63,7 @@ func runServer(privKey crypto.PrivKey) error {
 
 func runClient(privKey crypto.PrivKey) error {
 	auth := httpauth.ClientPeerIDAuth{PrivKey: privKey}
-	req, err := http.NewRequest("GET", "http://localhost:8001/auth", nil)
+	req, err := http.NewRequest("GET", "http://localhost:8001/log-my-id", nil)
 	if err != nil {
 		return err
 	}
@@ -78,15 +78,6 @@ func runClient(privKey crypto.PrivKey) error {
 		return err
 	}
 	fmt.Println("Client ID:", myID.String())
-
-	req, err = http.NewRequest("GET", "http://localhost:8001/log-my-id", nil)
-	if err != nil {
-		return err
-	}
-	_, _, err = auth.AuthenticatedDo(http.DefaultClient, req)
-	if err != nil {
-		return err
-	}
 
 	return nil
 }
