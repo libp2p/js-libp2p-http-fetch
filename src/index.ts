@@ -30,8 +30,7 @@
  * // And of course, you can use the fetch API as you normally would
  * resp = await node.services.http.fetch('https://example.com')
  *
- * // This gives you the accessiblity of the fetch API with the flexibility of using a p2p network.
- * }
+ * // This gives you the accessibility of the fetch API with the flexibility of using a p2p network.
  *
  * main()
  * ```
