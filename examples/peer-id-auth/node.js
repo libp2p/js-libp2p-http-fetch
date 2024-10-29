@@ -2,8 +2,8 @@
 
 import { serve } from '@hono/node-server'
 import { generateKeyPair } from '@libp2p/crypto/keys'
-import { ClientAuth, HTTPPeerIDAuthProto, ServerAuth } from '@libp2p/http-fetch/auth.js'
-import { WellKnownHandler, WELL_KNOWN_PROTOCOLS } from '@libp2p/http-fetch/well-known-handler.js'
+import { ClientAuth, HTTPPeerIDAuthProto, ServerAuth } from '@libp2p/http-fetch/auth'
+import { WellKnownHandler, WELL_KNOWN_PROTOCOLS } from '@libp2p/http-fetch/well-known-handler'
 import { peerIdFromPrivateKey } from '@libp2p/peer-id'
 import { Hono } from 'hono'
 

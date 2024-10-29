@@ -3,7 +3,7 @@
 import { noise } from '@chainsafe/libp2p-noise'
 import { yamux } from '@chainsafe/libp2p-yamux'
 import { http } from '@libp2p/http-fetch'
-import { PING_PROTOCOL_ID, servePing } from '@libp2p/http-fetch/ping.js'
+import { PING_PROTOCOL_ID, servePing } from '@libp2p/http-fetch/ping'
 import { tcp } from '@libp2p/tcp'
 import { createLibp2p } from 'libp2p'
 

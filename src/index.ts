@@ -13,7 +13,6 @@
  * import { createLibp2p } from 'libp2p'
  * import { http } from '@libp2p/http-fetch'
  *
- * async function main () {
  * const node = await createLibp2p({
  *     // other options ...
  *     services: {
@@ -30,10 +29,7 @@
  * // And of course, you can use the fetch API as you normally would
  * resp = await node.services.http.fetch('https://example.com')
  *
- * // This gives you the accessiblity of the fetch API with the flexibility of using a p2p network.
- * }
- *
- * main()
+ * // This gives you the accessibility of the fetch API with the flexibility of using a p2p network.
  * ```
  */
 

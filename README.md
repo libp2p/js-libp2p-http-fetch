@@ -37,7 +37,6 @@ See the `examples/` for full examples of how to use the HTTP service.
 import { createLibp2p } from 'libp2p'
 import { http } from '@libp2p/http-fetch'
 
-async function main () {
 const node = await createLibp2p({
     // other options ...
     services: {
@@ -54,10 +53,7 @@ resp = await node.services.http.fetch('multiaddr:/dns4/example.com/tcp/443/tls/h
 // And of course, you can use the fetch API as you normally would
 resp = await node.services.http.fetch('https://example.com')
 
-// This gives you the accessiblity of the fetch API with the flexibility of using a p2p network.
-}
-
-main()
+// This gives you the accessibility of the fetch API with the flexibility of using a p2p network.
 ```
 
 # Install

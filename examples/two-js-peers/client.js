@@ -3,7 +3,7 @@
 import { noise } from '@chainsafe/libp2p-noise'
 import { yamux } from '@chainsafe/libp2p-yamux'
 import { http } from '@libp2p/http-fetch'
-import { sendPing } from '@libp2p/http-fetch/ping.js'
+import { sendPing } from '@libp2p/http-fetch/ping'
 import { peerIdFromString } from '@libp2p/peer-id'
 import { tcp } from '@libp2p/tcp'
 import { multiaddr } from '@multiformats/multiaddr'
