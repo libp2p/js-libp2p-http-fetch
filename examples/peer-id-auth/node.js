@@ -1,14 +1,14 @@
 /* eslint-disable no-console */
 
 import { serve } from '@hono/node-server'
-import { unmarshalPrivateKey } from '@libp2p/crypto/keys'
+import { generateKeyPair } from '@libp2p/crypto/keys'
 import { ClientAuth, HTTPPeerIDAuthProto, ServerAuth } from '@libp2p/http-fetch/auth.js'
 import { WellKnownHandler, WELL_KNOWN_PROTOCOLS } from '@libp2p/http-fetch/well-known-handler.js'
-import { createEd25519PeerId } from '@libp2p/peer-id-factory'
+import { peerIdFromPrivateKey } from '@libp2p/peer-id'
 import { Hono } from 'hono'
 
-const myID = await createEd25519PeerId()
-const privKey = await unmarshalPrivateKey(myID.privateKey)
+const privKey = await generateKeyPair('Ed25519')
+const myID = peerIdFromPrivateKey(privKey)
 const wellKnownHandler = new WellKnownHandler()
 
 const args = process.argv.slice(2)
