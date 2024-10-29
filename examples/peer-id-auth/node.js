@@ -15,7 +15,7 @@ const args = process.argv.slice(2)
 if (args.length === 1 && args[0] === 'client') {
   // Client mode
   const client = new ClientAuth(privKey)
-  const observedPeerID = await client.authenticateServer(fetch, 'localhost:8001', 'http://localhost:8001/auth')
+  const observedPeerID = await client.authenticateServer('http://localhost:8001/auth')
   console.log('Server ID:', observedPeerID.toString())
 
   const authenticatedReq = new Request('http://localhost:8001/log-my-id', {
