@@ -116,7 +116,7 @@ export class ClientAuth {
 
     const serverAuthFields = parseHeader(serverAuthHeader)
     const serverPublicKey = publicKeyFromProtobuf(serverPubKeyBytes)
-    const serverID = await peerIdFromPublicKey(serverPublicKey)
+    const serverID = peerIdFromPublicKey(serverPublicKey)
     this.tokens.set(hostname, {
       peer: serverID,
       creationTime: new Date(),

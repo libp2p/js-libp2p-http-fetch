@@ -124,7 +124,7 @@ export class ServerAuth {
       }
 
       // Return a bearer token
-      clientPeerId = await peerIdFromPublicKey(clientPublicKey)
+      clientPeerId = peerIdFromPublicKey(clientPublicKey)
       returnParams.bearer = this.genBearerToken(clientPeerId, hostname)
     }
 
