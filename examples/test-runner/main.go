@@ -63,7 +63,7 @@ func runTest(hasProxy bool) error {
 }
 
 func runServer(ctx context.Context) (*exec.Cmd, []string, error) {
-	serverCmd := exec.CommandContext(ctx, "node", "server.mjs")
+	serverCmd := exec.CommandContext(ctx, "node", "server.js")
 	serverCmd.Stderr = os.Stderr
 	serverCmd.Cancel = func() error {
 		serverCmd.Process.Signal(os.Interrupt)
@@ -93,7 +93,7 @@ func runServer(ctx context.Context) (*exec.Cmd, []string, error) {
 }
 
 func runClient(serverMultiaddr string) error {
-	clientCmd := exec.Command("node", "client.mjs", serverMultiaddr)
+	clientCmd := exec.Command("node", "client.js", serverMultiaddr)
 	clientCmd.Stderr = os.Stderr
 	return clientCmd.Run()
 }

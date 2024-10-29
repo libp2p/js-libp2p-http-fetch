@@ -1,11 +1,13 @@
+/* eslint-disable no-console */
+
 import { noise } from '@chainsafe/libp2p-noise'
-import { multiaddr } from '@multiformats/multiaddr'
 import { yamux } from '@chainsafe/libp2p-yamux'
-import { tcp } from '@libp2p/tcp'
-import { createLibp2p } from 'libp2p'
 import { http } from '@libp2p/http-fetch'
-import { sendPing } from  '@libp2p/http-fetch/ping.js'
+import { sendPing } from '@libp2p/http-fetch/ping.js'
 import { peerIdFromString } from '@libp2p/peer-id'
+import { tcp } from '@libp2p/tcp'
+import { multiaddr } from '@multiformats/multiaddr'
+import { createLibp2p } from 'libp2p'
 
 const node = await createLibp2p({
   // libp2p nodes are started by default, pass false to override this
@@ -14,7 +16,7 @@ const node = await createLibp2p({
     listen: []
   },
   transports: [tcp()],
-  connectionEncryption: [noise()],
+  connectionEncrypters: [noise()],
   streamMuxers: [yamux()],
   services: { http: http() }
 })
@@ -32,7 +34,7 @@ if (!serverAddr) {
 
 let serverMA = multiaddr(serverAddr)
 
-const isHTTPTransport = serverMA.protos().find(p => p.name === "http") // check if this is an http transport multiaddr
+const isHTTPTransport = serverMA.protos().find(p => p.name === 'http') // check if this is an http transport multiaddr
 if (!isHTTPTransport && serverMA.getPeerId() === null) {
   // Learn the peer id of the server. This lets us reuse the connection for all our HTTP requests.
   // Otherwise js-libp2p will open a new connection for each request.
@@ -40,13 +42,13 @@ if (!isHTTPTransport && serverMA.getPeerId() === null) {
   serverMA = serverMA.encapsulate(`/p2p/${conn.remotePeer.toString()}`)
 }
 
-console.error("Making request to", `${serverMA.toString()}`)
+console.error('Making request to', `${serverMA.toString()}`)
 try {
   for (let i = 0; i < 2; i++) {
     const start = new Date().getTime()
     await sendPing(node, serverMA)
     const end = new Date().getTime()
-    console.error("Got response! took", end - start, "ms")
+    console.error('Got response! took', end - start, 'ms')
     console.log(end - start)
     // sleep 1s
     await new Promise(resolve => setTimeout(resolve, 1000))
@@ -59,7 +61,7 @@ try {
     const start = new Date().getTime()
     await sendPing(node, peerIdFromString(serverMA.getPeerId()))
     const end = new Date().getTime()
-    console.error("Got response! took", end - start, "ms")
+    console.error('Got response! took', end - start, 'ms')
     console.log(end - start)
   }
 } finally {
