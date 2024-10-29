@@ -1,8 +1,8 @@
 import * as varint from 'uint8-varint'
 import type { PrivateKey, PublicKey } from '@libp2p/interface'
 
-export const PeerIDAuthScheme = 'libp2p-PeerID' as const
-export const HTTPPeerIDAuthProto = '/http-peer-id-auth/1.0.0' as const
+export const PeerIDAuthScheme = 'libp2p-PeerID'
+export const HTTPPeerIDAuthProto = '/http-peer-id-auth/1.0.0'
 
 export async function sign (key: PrivateKey, prefix: string, partsToSign: Array<[string, string | Uint8Array]>): Promise<Uint8Array> {
   const dataToSign = genDataToSign(prefix, partsToSign)
