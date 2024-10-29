@@ -1,5 +1,5 @@
-import { unmarshalPublicKey, marshalPublicKey } from '@libp2p/crypto/keys'
-import { peerIdFromKeys, peerIdFromString } from '@libp2p/peer-id'
+import { publicKeyFromProtobuf, publicKeyToProtobuf } from '@libp2p/crypto/keys'
+import { peerIdFromPublicKey, peerIdFromString } from '@libp2p/peer-id'
 import { toString as uint8ArrayToString, fromString as uint8ArrayFromString } from 'uint8arrays'
 import { encodeAuthParams, parseHeader, PeerIDAuthScheme, sign, verify } from './common.js'
 import type { PeerId, PrivateKey, PublicKey, Logger } from '@libp2p/interface'
@@ -95,9 +95,9 @@ export class ServerAuth {
 
     let clientPublicKey: PublicKey | null = null
     if (opaqueState?.clientPublicKey !== undefined) {
-      clientPublicKey = unmarshalPublicKey(uint8ArrayFromString(opaqueState.clientPublicKey, 'base64urlpad'))
+      clientPublicKey = publicKeyFromProtobuf(uint8ArrayFromString(opaqueState.clientPublicKey, 'base64urlpad'))
     } else if (authFields['public-key'] !== undefined) {
-      clientPublicKey = unmarshalPublicKey(uint8ArrayFromString(authFields['public-key'], 'base64urlpad'))
+      clientPublicKey = publicKeyFromProtobuf(uint8ArrayFromString(authFields['public-key'], 'base64urlpad'))
     }
 
     const returnParams: Record<string, string> = {}
@@ -116,7 +116,7 @@ export class ServerAuth {
       const valid = await verify(clientPublicKey, PeerIDAuthScheme, [
         ['challenge-client', opaqueState?.challengeClient ?? ''],
         ['hostname', hostname],
-        ['server-public-key', marshalPublicKey(this.key.public)]
+        ['server-public-key', publicKeyToProtobuf(this.key.publicKey)]
       ], uint8ArrayFromString(authFields.sig, 'base64urlpad'))
       if (!valid) {
         this.logger?.error('Invalid signature')
@@ -124,7 +124,7 @@ export class ServerAuth {
       }
 
       // Return a bearer token
-      clientPeerId = await peerIdFromKeys(marshalPublicKey(clientPublicKey))
+      clientPeerId = await peerIdFromPublicKey(clientPublicKey)
       returnParams.bearer = this.genBearerToken(clientPeerId, hostname)
     }
 
@@ -137,10 +137,10 @@ export class ServerAuth {
       // Sign and return challenge
       const sig = await sign(this.key, PeerIDAuthScheme, [
         ['hostname', hostname],
-        ['client-public-key', marshalPublicKey(clientPublicKey)],
+        ['client-public-key', publicKeyToProtobuf(clientPublicKey)],
         ['challenge-server', authFields['challenge-server']]
       ])
-      returnParams['public-key'] = uint8ArrayToString(marshalPublicKey(this.key.public), 'base64urlpad')
+      returnParams['public-key'] = uint8ArrayToString(publicKeyToProtobuf(this.key.publicKey), 'base64urlpad')
       returnParams.sig = uint8ArrayToString(sig, 'base64urlpad')
     }
 
@@ -176,7 +176,7 @@ export class ServerAuth {
 
     returnParams.opaque = this.genOpaque({
       challengeClient: challenge,
-      clientPublicKey: clientPublicKey !== null ? uint8ArrayToString(marshalPublicKey(clientPublicKey), 'base64urlpad') : undefined,
+      clientPublicKey: clientPublicKey !== null ? uint8ArrayToString(publicKeyToProtobuf(clientPublicKey), 'base64urlpad') : undefined,
       hostname,
       creationTime: Date.now()
     })
@@ -196,7 +196,7 @@ export class ServerAuth {
       throw new Error('Invalid bearer token')
     }
     const bearer = parseHeader(token).bearer
-    const unwrapped = await this.verifyBox(this.key.public, bearer) as any
+    const unwrapped = await this.verifyBox(this.key.publicKey, bearer) as any
     if (typeof unwrapped.peer !== 'string' || typeof unwrapped.h !== 'string' || typeof unwrapped.t !== 'number') {
       throw new Error('Invalid bearer token')
     }
@@ -214,7 +214,7 @@ export class ServerAuth {
   }
 
   async unwrapOpaque (opaque: string): Promise<OpaqueUnwrapped> {
-    const unwrapped = await this.verifyBox(this.key.public, opaque) as any
+    const unwrapped = await this.verifyBox(this.key.publicKey, opaque) as any
     if (typeof unwrapped.challengeClient !== 'string' || typeof unwrapped.hostname !== 'string' || typeof unwrapped.creationTime !== 'number') {
       throw new Error('Invalid opaque')
     }
