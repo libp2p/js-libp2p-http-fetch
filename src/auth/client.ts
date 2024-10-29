@@ -3,13 +3,27 @@ import { peerIdFromPublicKey } from '@libp2p/peer-id'
 import { toString as uint8ArrayToString, fromString as uint8ArrayFromString } from 'uint8arrays'
 import { parseHeader, PeerIDAuthScheme, sign, verify } from './common.js'
 import type { PeerId, PrivateKey } from '@libp2p/interface'
-
-interface Fetch { (input: RequestInfo, init?: RequestInit): Promise<Response> }
+import type { AbortOptions } from '@multiformats/multiaddr'
 
 interface tokenInfo {
   creationTime: Date
   bearer: string
   peer: PeerId
+}
+
+export interface AuthenticateServerOptions extends AbortOptions {
+  /**
+   * The Fetch implementation to use
+   *
+   * @default globalThis.fetch
+   */
+  fetch?: typeof globalThis.fetch
+
+  /**
+   * The hostname to use - by default this will be extracted from the `.host`
+   * property of `authEndpointURI`
+   */
+  hostname?: string
 }
 
 export class ClientAuth {
@@ -49,7 +63,10 @@ export class ClientAuth {
     return `${PeerIDAuthScheme} bearer="${token.bearer}"`
   }
 
-  public async authenticateServer (fetch: Fetch, hostname: string, authEndpointURI: string): Promise<PeerId> {
+  public async authenticateServer (authEndpointURI: string | URL, options?: AuthenticateServerOptions): Promise<PeerId> {
+    authEndpointURI = new URL(authEndpointURI)
+    const hostname = options?.hostname ?? authEndpointURI.host
+
     if (this.tokens.has(hostname)) {
       const token = this.tokens.get(hostname)
       if (token !== undefined && Date.now() - token.creationTime.getTime() < this.tokenTTL) {
@@ -70,7 +87,11 @@ export class ClientAuth {
       })
     }
 
-    const resp = await fetch(authEndpointURI, { headers })
+    const fetch = options?.fetch ?? globalThis.fetch
+    const resp = await fetch(authEndpointURI, {
+      headers,
+      signal: options?.signal
+    })
 
     // Verify the server's challenge
     const authHeader = resp.headers.get('www-authenticate')
@@ -102,7 +123,8 @@ export class ClientAuth {
     const resp2 = await fetch(authEndpointURI, {
       headers: {
         Authorization: authenticateSelfHeaders
-      }
+      },
+      signal: options?.signal
     })
 
     // Verify the server's signature

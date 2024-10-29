@@ -26,14 +26,44 @@ describe('HTTP Peer ID Authentication', () => {
     const clientAuth = new ClientAuth(clientKey)
     const serverAuth = new ServerAuth(serverKey, h => h === 'example.com')
 
-    const fetch = async (input: RequestInfo, init?: RequestInit): Promise<Response> => {
+    const fetch = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
       const req = new Request(input, init)
       const resp = await serverAuth.httpHandler(req)
       return resp
     }
 
-    const observedServerPeerId = await clientAuth.authenticateServer(fetch, 'example.com', 'https://example.com/auth')
+    const observedServerPeerId = await clientAuth.authenticateServer('https://example.com/auth', {
+      fetch
+    })
     expect(observedServerPeerId.equals(server)).to.be.true()
+  })
+
+  it('Should mutually authenticate with a custom port', async () => {
+    const clientAuth = new ClientAuth(clientKey)
+    const serverAuth = new ServerAuth(serverKey, h => h === 'foobar:12345')
+
+    const fetch = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+      const req = new Request(input, init)
+      const resp = await serverAuth.httpHandler(req)
+      return resp
+    }
+
+    const observedServerPeerId = await clientAuth.authenticateServer('https://foobar:12345/auth', {
+      fetch
+    })
+    expect(observedServerPeerId.equals(server)).to.be.true()
+  })
+
+  it('Should time out when authenticating', async () => {
+    const clientAuth = new ClientAuth(clientKey)
+
+    const controller = new AbortController()
+    controller.abort()
+
+    await expect(clientAuth.authenticateServer('https://example.com/auth', {
+      signal: controller.signal
+    })).to.eventually.be.rejected
+      .with.property('name', 'AbortError')
   })
 
   it('Should match the test vectors', async () => {
