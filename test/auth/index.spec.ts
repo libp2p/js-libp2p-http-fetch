@@ -66,6 +66,28 @@ describe('HTTP Peer ID Authentication', () => {
       .with.property('name', 'AbortError')
   })
 
+  it('Should sent request body to authenticated server', async () => {
+    const clientAuth = new ClientAuth(clientKey)
+    const serverAuth = new ServerAuth(serverKey, h => h === 'example.com')
+
+    const echoHandler = async (req: Request): Promise<Response> => {
+      return new Response(await req.text())
+    }
+    const httpHandler = serverAuth.withAuth(async (clientId, req) => { return echoHandler(req) })
+
+    const fetch = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+      const req = new Request(input, init)
+      return httpHandler(req)
+    }
+
+    const expectedBody = 'Only for authenticated servers!'
+    const { response } = await clientAuth.authenticatedFetch(new Request('https://example.com/auth', { method: 'POST', body: expectedBody }), (observedId) => observedId.equals(server), {
+      fetch
+    })
+
+    expect((await response.text())).to.be.equal(expectedBody)
+  })
+
   it('Should match the test vectors', async () => {
     const clientKeyHex = '080112208139770ea87d175f56a35466c34c7ecccb8d8a91b4ee37a25df60f5b8fc9b394'
     const serverKeyHex = '0801124001010101010101010101010101010101010101010101010101010101010101018a88e3dd7409f195fd52db2d3cba5d72ca6709bf1d94121bf3748801b40f6f5c'
