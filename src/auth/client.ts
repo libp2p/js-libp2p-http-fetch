@@ -1,5 +1,5 @@
-import { unmarshalPublicKey, marshalPublicKey } from '@libp2p/crypto/keys'
-import { peerIdFromKeys } from '@libp2p/peer-id'
+import { publicKeyFromProtobuf, publicKeyToProtobuf } from '@libp2p/crypto/keys'
+import { peerIdFromPublicKey } from '@libp2p/peer-id'
 import { toString as uint8ArrayToString, fromString as uint8ArrayFromString } from 'uint8arrays'
 import { parseHeader, PeerIDAuthScheme, sign, verify } from './common.js'
 import type { PeerId, PrivateKey } from '@libp2p/interface'
@@ -60,7 +60,7 @@ export class ClientAuth {
     }
 
     // Client initiated handshake (server initiated is not implemented yet)
-    const marshaledClientPubKey = marshalPublicKey(this.key.public)
+    const marshaledClientPubKey = publicKeyToProtobuf(this.key.publicKey)
     const publicKeyStr = uint8ArrayToString(marshaledClientPubKey, 'base64urlpad')
     const challengeServer = this.generateChallenge()
     const headers = {
@@ -79,7 +79,7 @@ export class ClientAuth {
     }
     const authFields = parseHeader(authHeader)
     const serverPubKeyBytes = uint8ArrayFromString(authFields['public-key'], 'base64urlpad')
-    const serverPubKey = unmarshalPublicKey(serverPubKeyBytes)
+    const serverPubKey = publicKeyFromProtobuf(serverPubKeyBytes)
 
     const valid = await verify(serverPubKey, PeerIDAuthScheme, [
       ['hostname', hostname],
@@ -115,7 +115,8 @@ export class ClientAuth {
     }
 
     const serverAuthFields = parseHeader(serverAuthHeader)
-    const serverID = await peerIdFromKeys(serverPubKeyBytes)
+    const serverPublicKey = publicKeyFromProtobuf(serverPubKeyBytes)
+    const serverID = peerIdFromPublicKey(serverPublicKey)
     this.tokens.set(hostname, {
       peer: serverID,
       creationTime: new Date(),

@@ -1,0 +1,47 @@
+name: test examples
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - "**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - run: npm i
+        working-directory: ./examples
+      - uses: ipfs/aegir/actions/cache-node-modules@master
+        with:
+          directories: |
+            ./examples/node_modules
+
+  test-examples:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - uses: ipfs/aegir/actions/cache-node-modules@master
+        with:
+          directories: |
+            ./examples/node_modules
+      - uses: actions/setup-go@v5
+      - run: go build -o test-runner main.go
+        working-directory: ./examples/test-runner
+      - run: ../test-runner/test-runner -hasProxy
+        working-directory: ./examples/go-libp2p-http-proxy
+      - run: ../test-runner/test-runner
+        working-directory: ./examples/js-libp2p-client-and-node-server/
+      - run: ../test-runner/test-runner
+        working-directory: ./examples/two-js-peers
+      - run: ./runTest.sh
+        working-directory: ./examples/peer-id-auth

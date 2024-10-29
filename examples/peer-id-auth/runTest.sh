@@ -27,8 +27,8 @@ trap cleanup EXIT
 GO_SERVER="./go-node"
 GO_CLIENT="./go-node client"
 
-NODE_SERVER="node node.mjs"
-NODE_CLIENT="node node.mjs client"
+NODE_SERVER="node node.js"
+NODE_CLIENT="node node.js client"
 
 # Define server arrays
 SERVERS=("$GO_SERVER" "$NODE_SERVER")
