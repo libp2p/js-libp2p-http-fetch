@@ -11,7 +11,7 @@ interface tokenInfo {
   peer: PeerId
 }
 
-export interface AuthenticateServerOptions extends AbortOptions {
+export interface AuthenticateServerOptions {
   /**
    * The Fetch implementation to use
    *
@@ -51,7 +51,7 @@ export class ClientAuth {
     return `${PeerIDAuthScheme} ${encodedParams}`
   }
 
-  public bearerAuthHeader (hostname: string): string | undefined {
+  public bearerAuthHeader (hostname: string): { 'Authorization': string, peer: PeerId } | undefined {
     const token = this.tokens.get(hostname)
     if (token == null) {
       return undefined
@@ -60,17 +60,25 @@ export class ClientAuth {
       this.tokens.delete(hostname)
       return undefined
     }
-    return `${PeerIDAuthScheme} bearer="${token.bearer}"`
+    return { Authorization: `${PeerIDAuthScheme} bearer="${token.bearer}"`, peer: token.peer }
   }
 
-  public async authenticateServer (authEndpointURI: string | URL, options?: AuthenticateServerOptions): Promise<PeerId> {
-    authEndpointURI = new URL(authEndpointURI)
+  // authenticatedFetch is like `fetch`, but it also handles HTTP Peer ID
+  // authentication with the server.
+  //
+  // If we have not seen the server before, checkID will be called to check if
+  // we want to make the request to the server with the given peer id. This
+  // happens after we've authenticated the server.
+  public async authenticatedFetch (request: Request, checkId: (server: PeerId) => boolean, options?: AuthenticateServerOptions): Promise<{ peer: PeerId, response: Response }> {
+    const authEndpointURI = new URL(request.url)
     const hostname = options?.hostname ?? authEndpointURI.host
+    const fetch = options?.fetch ?? globalThis.fetch
 
     if (this.tokens.has(hostname)) {
-      const token = this.tokens.get(hostname)
-      if (token !== undefined && Date.now() - token.creationTime.getTime() < this.tokenTTL) {
-        return token.peer
+      const token = this.bearerAuthHeader(hostname)
+      if (token !== undefined) {
+        request.headers.set('Authorization', token.Authorization)
+        return { peer: token.peer, response: await fetch(request) }
       } else {
         this.tokens.delete(hostname)
       }
@@ -87,10 +95,9 @@ export class ClientAuth {
       })
     }
 
-    const fetch = options?.fetch ?? globalThis.fetch
     const resp = await fetch(authEndpointURI, {
       headers,
-      signal: options?.signal
+      signal: request.signal
     })
 
     // Verify the server's challenge
@@ -110,6 +117,13 @@ export class ClientAuth {
       throw new Error('Invalid signature')
     }
 
+    const serverPublicKey = publicKeyFromProtobuf(serverPubKeyBytes)
+    const serverID = peerIdFromPublicKey(serverPublicKey)
+
+    if (!checkId(serverID)) {
+      throw new Error('Id check failed')
+    }
+
     const sig = await sign(this.key, PeerIDAuthScheme, [
       ['hostname', hostname],
       ['server-public-key', serverPubKeyBytes],
@@ -120,14 +134,9 @@ export class ClientAuth {
       sig: uint8ArrayToString(sig, 'base64urlpad')
     })
 
-    const resp2 = await fetch(authEndpointURI, {
-      headers: {
-        Authorization: authenticateSelfHeaders
-      },
-      signal: options?.signal
-    })
+    request.headers.set('Authorization', authenticateSelfHeaders)
+    const resp2 = await fetch(request)
 
-    // Verify the server's signature
     const serverAuthHeader = resp2.headers.get('Authentication-Info')
     if (serverAuthHeader == null) {
       throw new Error('No server auth header')
@@ -137,14 +146,18 @@ export class ClientAuth {
     }
 
     const serverAuthFields = parseHeader(serverAuthHeader)
-    const serverPublicKey = publicKeyFromProtobuf(serverPubKeyBytes)
-    const serverID = peerIdFromPublicKey(serverPublicKey)
     this.tokens.set(hostname, {
       peer: serverID,
       creationTime: new Date(),
       bearer: serverAuthFields.bearer
     })
 
-    return serverID
+    return { peer: serverID, response: resp2 }
+  }
+
+  public async authenticateServer (authEndpointURI: string | URL, options?: AuthenticateServerOptions & AbortOptions): Promise<PeerId> {
+    const req = new Request(authEndpointURI, { signal: options?.signal })
+
+    return (await this.authenticatedFetch(req, (_) => true, options)).peer
   }
 }
