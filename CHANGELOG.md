@@ -1,3 +1,13 @@
+## [2.0.0](https://github.com/libp2p/js-libp2p-http-fetch/compare/v1.1.1...v2.0.0) (2024-10-29)
+
+### ⚠ BREAKING CHANGES
+
+* bump @libp2p/interface from 1.7.0 to 2.2.0 (#34)
+
+### Dependencies
+
+* bump @libp2p/interface from 1.7.0 to 2.2.0 ([#34](https://github.com/libp2p/js-libp2p-http-fetch/issues/34)) ([2945813](https://github.com/libp2p/js-libp2p-http-fetch/commit/2945813b0f401a43c49e6bb62ceba6db9783cb29))
+
 ## [1.1.1](https://github.com/libp2p/js-libp2p-http-fetch/compare/v1.1.0...v1.1.1) (2024-10-29)
 
 ### Trivial Changes
