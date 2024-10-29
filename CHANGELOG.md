@@ -1,3 +1,15 @@
+## [1.1.1](https://github.com/libp2p/js-libp2p-http-fetch/compare/v1.1.0...v1.1.1) (2024-10-29)
+
+### Trivial Changes
+
+* Update .github/pull_request_template.md [skip ci] ([4686c4a](https://github.com/libp2p/js-libp2p-http-fetch/commit/4686c4a6f656e24bf7e159879c340ae32a60e1c2))
+* Update .github/workflows/semantic-pull-request.yml [skip ci] ([6a0c4a5](https://github.com/libp2p/js-libp2p-http-fetch/commit/6a0c4a560499f2f52a023b7ed2319799815c9489))
+* Update .github/workflows/stale.yml [skip ci] ([634e31e](https://github.com/libp2p/js-libp2p-http-fetch/commit/634e31e1fa266d0acc057191c53ba056c84a62c1))
+
+### Dependencies
+
+* **dev:** bump aegir from 43.0.3 to 45.0.0 ([#33](https://github.com/libp2p/js-libp2p-http-fetch/issues/33)) ([8216a10](https://github.com/libp2p/js-libp2p-http-fetch/commit/8216a103a7b1f46b97eee02d132e103093901a67))
+
 ## [1.1.0](https://github.com/libp2p/js-libp2p-http-fetch/compare/v1.0.0...v1.1.0) (2024-06-13)
 
 
