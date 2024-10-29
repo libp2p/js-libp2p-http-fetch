@@ -1,7 +1,7 @@
 {
   "entryPoints": [
     "./src/index.ts",
-    "./src/auth/auth.ts",
+    "./src/auth/index.ts",
     "./src/ping.ts",
     "./src/well-known-handler.ts"
   ]
