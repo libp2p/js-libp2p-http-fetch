@@ -27,7 +27,7 @@ export interface AuthenticateServerOptions {
 }
 
 export interface VerifyPeerOptions {
-  verifyPeer?(peerId: PeerId): Promise<boolean>
+  verifyPeer?(peerId: PeerId, options: AbortOptions): Promise<boolean>
 }
 
 export class ClientAuth {
@@ -90,7 +90,7 @@ export class ClientAuth {
     return responseWithPeer
   }
 
-  async doAuthenticatedFetch (request: Request, verifyPeer: (server: PeerId) => Promise<boolean>, options?: AuthenticateServerOptions): Promise<{ peer: PeerId, response: Response }> {
+  async doAuthenticatedFetch (request: Request, verifyPeer: (server: PeerId, options: AbortOptions) => Promise<boolean>, options?: AuthenticateServerOptions): Promise<{ peer: PeerId, response: Response }> {
     const authEndpointURI = new URL(request.url)
     const hostname = options?.hostname ?? authEndpointURI.host
     const fetch = options?.fetch ?? globalThis.fetch
@@ -141,7 +141,7 @@ export class ClientAuth {
     const serverPublicKey = publicKeyFromProtobuf(serverPubKeyBytes)
     const serverID = peerIdFromPublicKey(serverPublicKey)
 
-    if (!await verifyPeer(serverID)) {
+    if (!await verifyPeer(serverID, { signal: request.signal })) {
       throw new Error('Id check failed')
     }
 
