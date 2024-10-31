@@ -27,7 +27,7 @@ export interface AuthenticateServerOptions {
 }
 
 export interface VerifyPeerOptions {
-  verifyPeer?(peerId: PeerId, options: AbortOptions): Promise<boolean>
+  verifyPeer?(peerId: PeerId, options: AbortOptions): boolean | Promise<boolean>
 }
 
 export class ClientAuth {
@@ -81,7 +81,7 @@ export class ClientAuth {
     } else {
       req = new Request(request, requestOpts)
     }
-    const verifyPeerWithDefault = verifyPeer ?? (async () => true)
+    const verifyPeerWithDefault = verifyPeer ?? (() => true)
 
     const { response, peer } = await this.doAuthenticatedFetch(req, verifyPeerWithDefault, { fetch, hostname })
 
@@ -90,7 +90,7 @@ export class ClientAuth {
     return responseWithPeer
   }
 
-  async doAuthenticatedFetch (request: Request, verifyPeer: (server: PeerId, options: AbortOptions) => Promise<boolean>, options?: AuthenticateServerOptions): Promise<{ peer: PeerId, response: Response }> {
+  async doAuthenticatedFetch (request: Request, verifyPeer: (server: PeerId, options: AbortOptions) => boolean | Promise<boolean>, options?: AuthenticateServerOptions): Promise<{ peer: PeerId, response: Response }> {
     const authEndpointURI = new URL(request.url)
     const hostname = options?.hostname ?? authEndpointURI.host
     const fetch = options?.fetch ?? globalThis.fetch

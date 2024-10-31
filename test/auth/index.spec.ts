@@ -81,7 +81,7 @@ describe('HTTP Peer ID Authentication', () => {
     }
 
     const expectedBody = 'Only for authenticated servers!'
-    const response = await clientAuth.authenticatedFetch('https://example.com/auth', { method: 'POST', body: expectedBody, verifyPeer: async (observedId) => observedId.equals(server), fetch })
+    const response = await clientAuth.authenticatedFetch('https://example.com/auth', { method: 'POST', body: expectedBody, verifyPeer: (observedId) => observedId.equals(server), fetch })
 
     expect((await response.text())).to.be.equal(expectedBody)
     expect(response.peer.equals(server)).to.be.true()
