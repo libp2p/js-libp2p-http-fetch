@@ -55,7 +55,7 @@ export class ClientAuth {
     return `${PeerIDAuthScheme} ${encodedParams}`
   }
 
-  public bearerAuthHeader (hostname: string): { 'Authorization': string, peer: PeerId } | undefined {
+  public bearerAuthHeaderWithPeer (hostname: string): { 'authorization': string, peer: PeerId } | undefined {
     const token = this.tokens.get(hostname)
     if (token == null) {
       return undefined
@@ -64,7 +64,11 @@ export class ClientAuth {
       this.tokens.delete(hostname)
       return undefined
     }
-    return { Authorization: `${PeerIDAuthScheme} bearer="${token.bearer}"`, peer: token.peer }
+    return { authorization: `${PeerIDAuthScheme} bearer="${token.bearer}"`, peer: token.peer }
+  }
+
+  public bearerAuthHeader (hostname: string): string | undefined {
+    return this.bearerAuthHeaderWithPeer(hostname)?.authorization
   }
 
   // authenticatedFetch is like `fetch`, but it also handles HTTP Peer ID
@@ -90,15 +94,15 @@ export class ClientAuth {
     return responseWithPeer
   }
 
-  async doAuthenticatedFetch (request: Request, verifyPeer: (server: PeerId, options: AbortOptions) => boolean | Promise<boolean>, options?: AuthenticateServerOptions): Promise<{ peer: PeerId, response: Response }> {
+  private async doAuthenticatedFetch (request: Request, verifyPeer: (server: PeerId, options: AbortOptions) => boolean | Promise<boolean>, options?: AuthenticateServerOptions): Promise<{ peer: PeerId, response: Response }> {
     const authEndpointURI = new URL(request.url)
     const hostname = options?.hostname ?? authEndpointURI.host
     const fetch = options?.fetch ?? globalThis.fetch
 
     if (this.tokens.has(hostname)) {
-      const token = this.bearerAuthHeader(hostname)
+      const token = this.bearerAuthHeaderWithPeer(hostname)
       if (token !== undefined) {
-        request.headers.set('Authorization', token.Authorization)
+        request.headers.set('Authorization', token.authorization)
         return { peer: token.peer, response: await fetch(request) }
       } else {
         this.tokens.delete(hostname)
