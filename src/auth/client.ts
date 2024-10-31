@@ -11,7 +11,7 @@ interface tokenInfo {
   peer: PeerId
 }
 
-export interface AuthenticateServerOptions {
+export interface AuthenticatedFetchOptions extends RequestInit {
   /**
    * The Fetch implementation to use
    *
@@ -24,10 +24,24 @@ export interface AuthenticateServerOptions {
    * property of `authEndpointURI`
    */
   hostname?: string
+
+  /**
+   * A function to verify the peer ID of the server. This function
+   * will be called after the server has authenticated itself.
+   * If the function returns false, the request will be aborted.
+   */
+  verifyPeer?(peerId: PeerId, options: AbortOptions): boolean | Promise<boolean>
 }
 
-export interface VerifyPeerOptions {
-  verifyPeer?(peerId: PeerId, options: AbortOptions): boolean | Promise<boolean>
+export interface AuthenticateServerOptions extends AbortOptions {
+  fetch?: AuthenticatedFetchOptions['fetch']
+  hostname?: AuthenticatedFetchOptions['hostname']
+}
+
+interface doAuthenticatedFetchOptions {
+  fetch?: AuthenticatedFetchOptions['fetch']
+  hostname?: AuthenticatedFetchOptions['hostname']
+  verifyPeer?: AuthenticatedFetchOptions['verifyPeer']
 }
 
 export class ClientAuth {
@@ -71,13 +85,15 @@ export class ClientAuth {
     return this.bearerAuthHeaderWithPeer(hostname)?.authorization
   }
 
-  // authenticatedFetch is like `fetch`, but it also handles HTTP Peer ID
-  // authentication with the server.
-  //
-  // If we have not seen the server before, checkID will be called to check if
-  // we want to make the request to the server with the given peer id. This
-  // happens after we've authenticated the server.
-  public async authenticatedFetch (request: string | URL | Request, options?: RequestInit & AuthenticateServerOptions & VerifyPeerOptions): Promise<Response & { peer: PeerId }> {
+  /**
+   * authenticatedFetch is like `fetch`, but it also handles HTTP Peer ID
+   * authentication with the server.
+   *
+   * If we have not seen the server before, verifyPeer will be called to check
+   * if we want to make the request to the server with the given peer id. This
+   * happens after we've authenticated the server.
+   */
+  public async authenticatedFetch (request: string | URL | Request, options?: AuthenticatedFetchOptions): Promise<Response & { peer: PeerId }> {
     const { fetch, hostname, verifyPeer, ...requestOpts } = options ?? {}
     let req: Request
     if (request instanceof Request && Object.keys(requestOpts).length === 0) {
@@ -94,7 +110,7 @@ export class ClientAuth {
     return responseWithPeer
   }
 
-  private async doAuthenticatedFetch (request: Request, verifyPeer: (server: PeerId, options: AbortOptions) => boolean | Promise<boolean>, options?: AuthenticateServerOptions): Promise<{ peer: PeerId, response: Response }> {
+  private async doAuthenticatedFetch (request: Request, verifyPeer: (server: PeerId, options: AbortOptions) => boolean | Promise<boolean>, options?: doAuthenticatedFetchOptions): Promise<{ peer: PeerId, response: Response }> {
     const authEndpointURI = new URL(request.url)
     const hostname = options?.hostname ?? authEndpointURI.host
     const fetch = options?.fetch ?? globalThis.fetch
@@ -180,7 +196,7 @@ export class ClientAuth {
     return { peer: serverID, response: resp2 }
   }
 
-  public async authenticateServer (authEndpointURI: string | URL, options?: AuthenticateServerOptions & AbortOptions): Promise<PeerId> {
+  public async authenticateServer (authEndpointURI: string | URL, options?: AuthenticateServerOptions): Promise<PeerId> {
     const req = new Request(authEndpointURI, { signal: options?.signal })
     return (await this.authenticatedFetch(req, options)).peer
   }
