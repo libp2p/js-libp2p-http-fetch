@@ -26,6 +26,10 @@ export interface AuthenticateServerOptions {
   hostname?: string
 }
 
+export interface VerifyPeerOptions {
+  verifyPeer?(peerId: PeerId): Promise<boolean>
+}
+
 export class ClientAuth {
   key: PrivateKey
   tokens = new Map<string, tokenInfo>() // A map from hostname to token
@@ -69,7 +73,24 @@ export class ClientAuth {
   // If we have not seen the server before, checkID will be called to check if
   // we want to make the request to the server with the given peer id. This
   // happens after we've authenticated the server.
-  public async authenticatedFetch (request: Request, checkId: (server: PeerId) => boolean, options?: AuthenticateServerOptions): Promise<{ peer: PeerId, response: Response }> {
+  public async authenticatedFetch (request: string | URL | Request, options?: RequestInit & AuthenticateServerOptions & VerifyPeerOptions): Promise<Response & { peer: PeerId }> {
+    const { fetch, hostname, verifyPeer, ...requestOpts } = options ?? {}
+    let req: Request
+    if (request instanceof Request && Object.keys(requestOpts).length === 0) {
+      req = request
+    } else {
+      req = new Request(request, requestOpts)
+    }
+    const verifyPeerWithDefault = verifyPeer ?? (async () => true)
+
+    const { response, peer } = await this.doAuthenticatedFetch(req, verifyPeerWithDefault, { fetch, hostname })
+
+    const responseWithPeer: Response & { peer: PeerId } = response as Response & { peer: PeerId }
+    responseWithPeer.peer = peer
+    return responseWithPeer
+  }
+
+  async doAuthenticatedFetch (request: Request, verifyPeer: (server: PeerId) => Promise<boolean>, options?: AuthenticateServerOptions): Promise<{ peer: PeerId, response: Response }> {
     const authEndpointURI = new URL(request.url)
     const hostname = options?.hostname ?? authEndpointURI.host
     const fetch = options?.fetch ?? globalThis.fetch
@@ -120,7 +141,7 @@ export class ClientAuth {
     const serverPublicKey = publicKeyFromProtobuf(serverPubKeyBytes)
     const serverID = peerIdFromPublicKey(serverPublicKey)
 
-    if (!checkId(serverID)) {
+    if (!await verifyPeer(serverID)) {
       throw new Error('Id check failed')
     }
 
@@ -157,7 +178,6 @@ export class ClientAuth {
 
   public async authenticateServer (authEndpointURI: string | URL, options?: AuthenticateServerOptions & AbortOptions): Promise<PeerId> {
     const req = new Request(authEndpointURI, { signal: options?.signal })
-
-    return (await this.authenticatedFetch(req, (_) => true, options)).peer
+    return (await this.authenticatedFetch(req, options)).peer
   }
 }

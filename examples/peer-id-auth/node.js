@@ -15,7 +15,7 @@ const args = process.argv.slice(2)
 if (args.length === 1 && args[0] === 'client') {
   // Client mode
   const client = new ClientAuth(privKey)
-  const { peer: serverID } = await client.authenticatedFetch(new Request('http://localhost:8001/log-my-id'), (id) => true)
+  const { peer: serverID } = await client.authenticatedFetch('http://localhost:8001/log-my-id')
   console.log('Server ID:', serverID.toString())
   console.log('Client ID:', myID.toString())
   process.exit(0)
