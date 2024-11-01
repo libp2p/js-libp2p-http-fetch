@@ -2,16 +2,17 @@ import { publicKeyFromProtobuf, publicKeyToProtobuf } from '@libp2p/crypto/keys'
 import { peerIdFromPublicKey } from '@libp2p/peer-id'
 import { toString as uint8ArrayToString, fromString as uint8ArrayFromString } from 'uint8arrays'
 import { parseHeader, PeerIDAuthScheme, sign, verify } from './common.js'
+import { BadResponseError, InvalidPeerError, InvalidSignatureError, MissingAuthHeaderError } from './errors.js'
 import type { PeerId, PrivateKey } from '@libp2p/interface'
 import type { AbortOptions } from '@multiformats/multiaddr'
 
-interface tokenInfo {
+export interface TokenInfo {
   creationTime: Date
   bearer: string
   peer: PeerId
 }
 
-export interface AuthenticateServerOptions extends AbortOptions {
+export interface AuthenticatedFetchOptions extends RequestInit {
   /**
    * The Fetch implementation to use
    *
@@ -24,11 +25,38 @@ export interface AuthenticateServerOptions extends AbortOptions {
    * property of `authEndpointURI`
    */
   hostname?: string
+
+  /**
+   * A function to verify the peer ID of the server. This function
+   * will be called after the server has authenticated itself.
+   * If the function returns false, the request will be aborted.
+   */
+  verifyPeer?(peerId: PeerId, options: AbortOptions): boolean | Promise<boolean>
+}
+
+export interface AuthenticateServerOptions extends AbortOptions {
+  /**
+   * The Fetch implementation to use
+   *
+   * @default globalThis.fetch
+   */
+  fetch?: AuthenticatedFetchOptions['fetch']
+
+  /**
+   * The hostname to use - by default this will be extracted from the `.host`
+   * property of `authEndpointURI`
+   */
+  hostname?: AuthenticatedFetchOptions['hostname']
+}
+
+interface DoAuthenticatedFetchOptions {
+  fetch?: AuthenticatedFetchOptions['fetch']
+  hostname?: AuthenticatedFetchOptions['hostname']
 }
 
 export class ClientAuth {
   key: PrivateKey
-  tokens = new Map<string, tokenInfo>() // A map from hostname to token
+  tokens = new Map<string, TokenInfo>() // A map from hostname to token
   tokenTTL = 60 * 60 * 1000 // 1 hour
 
   constructor (key: PrivateKey, opts?: { tokenTTL?: number }) {
@@ -51,7 +79,7 @@ export class ClientAuth {
     return `${PeerIDAuthScheme} ${encodedParams}`
   }
 
-  public bearerAuthHeader (hostname: string): string | undefined {
+  public bearerAuthHeaderWithPeer (hostname: string): { 'authorization': string, peer: PeerId } | undefined {
     const token = this.tokens.get(hostname)
     if (token == null) {
       return undefined
@@ -60,17 +88,48 @@ export class ClientAuth {
       this.tokens.delete(hostname)
       return undefined
     }
-    return `${PeerIDAuthScheme} bearer="${token.bearer}"`
+    return { authorization: `${PeerIDAuthScheme} bearer="${token.bearer}"`, peer: token.peer }
   }
 
-  public async authenticateServer (authEndpointURI: string | URL, options?: AuthenticateServerOptions): Promise<PeerId> {
-    authEndpointURI = new URL(authEndpointURI)
+  public bearerAuthHeader (hostname: string): string | undefined {
+    return this.bearerAuthHeaderWithPeer(hostname)?.authorization
+  }
+
+  /**
+   * authenticatedFetch is like `fetch`, but it also handles HTTP Peer ID
+   * authentication with the server.
+   *
+   * If we have not seen the server before, verifyPeer will be called to check
+   * if we want to make the request to the server with the given peer id. This
+   * happens after we've authenticated the server.
+   */
+  public async authenticatedFetch (request: string | URL | Request, options?: AuthenticatedFetchOptions): Promise<Response & { peer: PeerId }> {
+    const { fetch, hostname, verifyPeer, ...requestOpts } = options ?? {}
+    let req: Request
+    if (request instanceof Request && Object.keys(requestOpts).length === 0) {
+      req = request
+    } else {
+      req = new Request(request, requestOpts)
+    }
+    const verifyPeerWithDefault = verifyPeer ?? (() => true)
+
+    const { response, peer } = await this.doAuthenticatedFetch(req, verifyPeerWithDefault, { fetch, hostname })
+
+    const responseWithPeer: Response & { peer: PeerId } = response as Response & { peer: PeerId }
+    responseWithPeer.peer = peer
+    return responseWithPeer
+  }
+
+  private async doAuthenticatedFetch (request: Request, verifyPeer: (server: PeerId, options: AbortOptions) => boolean | Promise<boolean>, options?: DoAuthenticatedFetchOptions): Promise<{ peer: PeerId, response: Response }> {
+    const authEndpointURI = new URL(request.url)
     const hostname = options?.hostname ?? authEndpointURI.host
+    const fetch = options?.fetch ?? globalThis.fetch
 
     if (this.tokens.has(hostname)) {
-      const token = this.tokens.get(hostname)
-      if (token !== undefined && Date.now() - token.creationTime.getTime() < this.tokenTTL) {
-        return token.peer
+      const token = this.bearerAuthHeaderWithPeer(hostname)
+      if (token !== undefined) {
+        request.headers.set('Authorization', token.authorization)
+        return { peer: token.peer, response: await fetch(request) }
       } else {
         this.tokens.delete(hostname)
       }
@@ -87,16 +146,15 @@ export class ClientAuth {
       })
     }
 
-    const fetch = options?.fetch ?? globalThis.fetch
     const resp = await fetch(authEndpointURI, {
       headers,
-      signal: options?.signal
+      signal: request.signal
     })
 
     // Verify the server's challenge
     const authHeader = resp.headers.get('www-authenticate')
     if (authHeader == null) {
-      throw new Error('No auth header')
+      throw new MissingAuthHeaderError('No auth header')
     }
     const authFields = parseHeader(authHeader)
     const serverPubKeyBytes = uint8ArrayFromString(authFields['public-key'], 'base64urlpad')
@@ -107,7 +165,14 @@ export class ClientAuth {
       ['client-public-key', marshaledClientPubKey],
       ['challenge-server', challengeServer]], uint8ArrayFromString(authFields.sig, 'base64urlpad'))
     if (!valid) {
-      throw new Error('Invalid signature')
+      throw new InvalidSignatureError('Invalid signature')
+    }
+
+    const serverPublicKey = publicKeyFromProtobuf(serverPubKeyBytes)
+    const serverID = peerIdFromPublicKey(serverPublicKey)
+
+    if (!await verifyPeer(serverID, { signal: request.signal })) {
+      throw new InvalidPeerError('Id check failed')
     }
 
     const sig = await sign(this.key, PeerIDAuthScheme, [
@@ -120,31 +185,30 @@ export class ClientAuth {
       sig: uint8ArrayToString(sig, 'base64urlpad')
     })
 
-    const resp2 = await fetch(authEndpointURI, {
-      headers: {
-        Authorization: authenticateSelfHeaders
-      },
-      signal: options?.signal
-    })
+    request.headers.set('Authorization', authenticateSelfHeaders)
+    const resp2 = await fetch(request)
 
-    // Verify the server's signature
+    if (!resp2.ok) {
+      throw new BadResponseError(`Unexpected status code ${resp.status}`)
+    }
+
     const serverAuthHeader = resp2.headers.get('Authentication-Info')
     if (serverAuthHeader == null) {
-      throw new Error('No server auth header')
-    }
-    if (resp2.status !== 200) {
-      throw new Error('Unexpected status code')
+      throw new MissingAuthHeaderError('No server auth header')
     }
 
     const serverAuthFields = parseHeader(serverAuthHeader)
-    const serverPublicKey = publicKeyFromProtobuf(serverPubKeyBytes)
-    const serverID = peerIdFromPublicKey(serverPublicKey)
     this.tokens.set(hostname, {
       peer: serverID,
       creationTime: new Date(),
       bearer: serverAuthFields.bearer
     })
 
-    return serverID
+    return { peer: serverID, response: resp2 }
+  }
+
+  public async authenticateServer (authEndpointURI: string | URL, options?: AuthenticateServerOptions): Promise<PeerId> {
+    const req = new Request(authEndpointURI, { signal: options?.signal })
+    return (await this.authenticatedFetch(req, options)).peer
   }
 }

@@ -1,4 +1,4 @@
-type ProtocolID = string
+export type ProtocolID = string
 export { WELL_KNOWN_PROTOCOLS } from './constants.js'
 export type ProtosMap = Record<ProtocolID, { path: string }>
 export class WellKnownHandler {
