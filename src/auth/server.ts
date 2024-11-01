@@ -4,17 +4,20 @@ import { toString as uint8ArrayToString, fromString as uint8ArrayFromString } fr
 import { encodeAuthParams, parseHeader, PeerIDAuthScheme, sign, verify } from './common.js'
 import type { PeerId, PrivateKey, PublicKey, Logger } from '@libp2p/interface'
 
-interface httpHandler { (req: Request): Promise<Response> }
-export class ServerAuth {
-  key: PrivateKey
-  validHostname: (hostname: string) => boolean
-  tokenTTL = 60 * 60 * 1000 // 1 hour
-  logger?: Logger
+export interface HttpHandler { (req: Request): Promise<Response> }
 
-  constructor (key: PrivateKey, validHostnames: (hostname: string) => boolean, opts?: {
-    logger?: Logger
-    tokenTTL?: number
-  }) {
+export interface ServerAuthOps {
+  logger?: Logger
+  tokenTTL?: number
+}
+
+export class ServerAuth {
+  private readonly key: PrivateKey
+  private readonly validHostname: (hostname: string) => boolean
+  private readonly tokenTTL = 60 * 60 * 1000 // 1 hour
+  private readonly logger?: Logger
+
+  constructor (key: PrivateKey, validHostnames: (hostname: string) => boolean, opts?: ServerAuthOps) {
     this.key = key
     this.validHostname = validHostnames
     this.logger = opts?.logger
@@ -27,7 +30,7 @@ export class ServerAuth {
     return new Response('', { status: 200 })
   })
 
-  withAuth (httpAuthedHandler: (peer: PeerId, req: Request) => Promise<Response>): httpHandler {
+  withAuth (httpAuthedHandler: (peer: PeerId, req: Request) => Promise<Response>): HttpHandler {
     return async (req: Request): Promise<Response> => {
       const authResp = await this.authenticateRequest(req)
       if (authResp.status !== 200 || authResp.peer === undefined) {
@@ -53,7 +56,7 @@ export class ServerAuth {
   }
 
   /* eslint-disable-next-line complexity */
-  async authenticateRequest (req: Request): Promise<AuthRes> {
+  private async authenticateRequest (req: Request): Promise<AuthenticationResponse> {
     const hostname = this.readHostname(req)
     if (!this.validHostname(hostname)) {
       return { status: 400 }
@@ -170,7 +173,7 @@ export class ServerAuth {
     return hostname
   }
 
-  async returnChallenge (hostname: string, clientPublicKey: PublicKey | null, returnParams: Record<string, string>): Promise<AuthRes> {
+  private async returnChallenge (hostname: string, clientPublicKey: PublicKey | null, returnParams: Record<string, string>): Promise<AuthenticationResponse> {
     const challenge = this.generateChallenge()
     returnParams['challenge-client'] = challenge
 
@@ -183,7 +186,7 @@ export class ServerAuth {
     return { status: 401, headers: { 'WWW-Authenticate': encodeAuthParams(returnParams) } }
   }
 
-  genBearerToken (clientPeerId: PeerId, hostname: string): string {
+  private genBearerToken (clientPeerId: PeerId, hostname: string): string {
     return this.signBox(this.key, {
       peer: clientPeerId.toString(),
       h: hostname,
@@ -191,7 +194,7 @@ export class ServerAuth {
     })
   }
 
-  public async unwrapBearerToken (expectedHostname: string, token: string): Promise<PeerId> {
+  private async unwrapBearerToken (expectedHostname: string, token: string): Promise<PeerId> {
     if (token.length < PeerIDAuthScheme.length + 1) {
       throw new Error('Invalid bearer token')
     }
@@ -209,11 +212,11 @@ export class ServerAuth {
     return peerIdFromString(unwrapped.peer)
   }
 
-  genOpaque (unwrapped: OpaqueUnwrapped): string {
+  private genOpaque (unwrapped: OpaqueUnwrapped): string {
     return this.signBox(this.key, unwrapped)
   }
 
-  async unwrapOpaque (opaque: string): Promise<OpaqueUnwrapped> {
+  private async unwrapOpaque (opaque: string): Promise<OpaqueUnwrapped> {
     const unwrapped = await this.verifyBox(this.key.publicKey, opaque) as any
     if (typeof unwrapped.challengeClient !== 'string' || typeof unwrapped.hostname !== 'string' || typeof unwrapped.creationTime !== 'number') {
       throw new Error('Invalid opaque')
@@ -221,7 +224,7 @@ export class ServerAuth {
     return unwrapped
   }
 
-  signBox (key: PrivateKey, data: unknown): string {
+  private signBox (key: PrivateKey, data: unknown): string {
     const dataSerialized = JSON.stringify(data)
     const dataBytes = textEncoder.encode(dataSerialized)
     const sig = key.sign(dataBytes)
@@ -232,7 +235,7 @@ export class ServerAuth {
     return uint8ArrayToString(textEncoder.encode(jsonStr), 'base64urlpad')
   }
 
-  async verifyBox (key: PublicKey, data: string): Promise<unknown> {
+  private async verifyBox (key: PublicKey, data: string): Promise<unknown> {
     const { sig, val } = JSON.parse(textDecoder.decode(uint8ArrayFromString(data, 'base64urlpad')))
     const valBytes = uint8ArrayFromString(val, 'base64urlpad')
     const sigValid = await key.verify(valBytes, uint8ArrayFromString(sig, 'base64urlpad'))
@@ -260,4 +263,8 @@ interface OpaqueUnwrapped {
 const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder()
 
-interface AuthRes { status: number, headers?: Record<string, string>, peer?: PeerId | undefined }
+interface AuthenticationResponse {
+  status: number
+  headers?: Record<string, string>
+  peer?: PeerId | undefined
+}

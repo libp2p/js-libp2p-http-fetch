@@ -2,10 +2,11 @@ import { publicKeyFromProtobuf, publicKeyToProtobuf } from '@libp2p/crypto/keys'
 import { peerIdFromPublicKey } from '@libp2p/peer-id'
 import { toString as uint8ArrayToString, fromString as uint8ArrayFromString } from 'uint8arrays'
 import { parseHeader, PeerIDAuthScheme, sign, verify } from './common.js'
+import { BadResponseError, InvalidPeerError, InvalidSignatureError, MissingAuthHeaderError } from './errors.js'
 import type { PeerId, PrivateKey } from '@libp2p/interface'
 import type { AbortOptions } from '@multiformats/multiaddr'
 
-interface tokenInfo {
+export interface TokenInfo {
   creationTime: Date
   bearer: string
   peer: PeerId
@@ -34,19 +35,28 @@ export interface AuthenticatedFetchOptions extends RequestInit {
 }
 
 export interface AuthenticateServerOptions extends AbortOptions {
+  /**
+   * The Fetch implementation to use
+   *
+   * @default globalThis.fetch
+   */
   fetch?: AuthenticatedFetchOptions['fetch']
+
+  /**
+   * The hostname to use - by default this will be extracted from the `.host`
+   * property of `authEndpointURI`
+   */
   hostname?: AuthenticatedFetchOptions['hostname']
 }
 
-interface doAuthenticatedFetchOptions {
+interface DoAuthenticatedFetchOptions {
   fetch?: AuthenticatedFetchOptions['fetch']
   hostname?: AuthenticatedFetchOptions['hostname']
-  verifyPeer?: AuthenticatedFetchOptions['verifyPeer']
 }
 
 export class ClientAuth {
   key: PrivateKey
-  tokens = new Map<string, tokenInfo>() // A map from hostname to token
+  tokens = new Map<string, TokenInfo>() // A map from hostname to token
   tokenTTL = 60 * 60 * 1000 // 1 hour
 
   constructor (key: PrivateKey, opts?: { tokenTTL?: number }) {
@@ -110,7 +120,7 @@ export class ClientAuth {
     return responseWithPeer
   }
 
-  private async doAuthenticatedFetch (request: Request, verifyPeer: (server: PeerId, options: AbortOptions) => boolean | Promise<boolean>, options?: doAuthenticatedFetchOptions): Promise<{ peer: PeerId, response: Response }> {
+  private async doAuthenticatedFetch (request: Request, verifyPeer: (server: PeerId, options: AbortOptions) => boolean | Promise<boolean>, options?: DoAuthenticatedFetchOptions): Promise<{ peer: PeerId, response: Response }> {
     const authEndpointURI = new URL(request.url)
     const hostname = options?.hostname ?? authEndpointURI.host
     const fetch = options?.fetch ?? globalThis.fetch
@@ -144,7 +154,7 @@ export class ClientAuth {
     // Verify the server's challenge
     const authHeader = resp.headers.get('www-authenticate')
     if (authHeader == null) {
-      throw new Error('No auth header')
+      throw new MissingAuthHeaderError('No auth header')
     }
     const authFields = parseHeader(authHeader)
     const serverPubKeyBytes = uint8ArrayFromString(authFields['public-key'], 'base64urlpad')
@@ -155,14 +165,14 @@ export class ClientAuth {
       ['client-public-key', marshaledClientPubKey],
       ['challenge-server', challengeServer]], uint8ArrayFromString(authFields.sig, 'base64urlpad'))
     if (!valid) {
-      throw new Error('Invalid signature')
+      throw new InvalidSignatureError('Invalid signature')
     }
 
     const serverPublicKey = publicKeyFromProtobuf(serverPubKeyBytes)
     const serverID = peerIdFromPublicKey(serverPublicKey)
 
     if (!await verifyPeer(serverID, { signal: request.signal })) {
-      throw new Error('Id check failed')
+      throw new InvalidPeerError('Id check failed')
     }
 
     const sig = await sign(this.key, PeerIDAuthScheme, [
@@ -178,12 +188,13 @@ export class ClientAuth {
     request.headers.set('Authorization', authenticateSelfHeaders)
     const resp2 = await fetch(request)
 
+    if (!resp2.ok) {
+      throw new BadResponseError(`Unexpected status code ${resp.status}`)
+    }
+
     const serverAuthHeader = resp2.headers.get('Authentication-Info')
     if (serverAuthHeader == null) {
-      throw new Error('No server auth header')
-    }
-    if (resp2.status !== 200) {
-      throw new Error('Unexpected status code')
+      throw new MissingAuthHeaderError('No server auth header')
     }
 
     const serverAuthFields = parseHeader(serverAuthHeader)
