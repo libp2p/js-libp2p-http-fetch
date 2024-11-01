@@ -1,3 +1,9 @@
+## [2.0.2](https://github.com/libp2p/js-libp2p-http-fetch/compare/v2.0.1...v2.0.2) (2024-10-29)
+
+### Bug Fixes
+
+* allow aborting authentication ([#43](https://github.com/libp2p/js-libp2p-http-fetch/issues/43)) ([3494773](https://github.com/libp2p/js-libp2p-http-fetch/commit/3494773844cf68f0f89d2dca1c857deb923e4c90))
+
 ## [2.0.1](https://github.com/libp2p/js-libp2p-http-fetch/compare/v2.0.0...v2.0.1) (2024-10-29)
 
 ### Bug Fixes
