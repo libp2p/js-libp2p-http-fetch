@@ -1,3 +1,9 @@
+## [2.1.0](https://github.com/libp2p/js-libp2p-http-fetch/compare/v2.0.2...v2.1.0) (2024-11-01)
+
+### Features
+
+* Authenticated Fetch ([#45](https://github.com/libp2p/js-libp2p-http-fetch/issues/45)) ([ca69dc4](https://github.com/libp2p/js-libp2p-http-fetch/commit/ca69dc41fb53b8808e40ff5745cb85b0521fbc15))
+
 ## [2.0.2](https://github.com/libp2p/js-libp2p-http-fetch/compare/v2.0.1...v2.0.2) (2024-10-29)
 
 ### Bug Fixes
