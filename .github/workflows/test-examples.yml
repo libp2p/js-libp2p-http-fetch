@@ -17,7 +17,7 @@ jobs:
           node-version: lts/*
       - run: npm i
         working-directory: ./examples
-      - uses: ipfs/aegir/actions/cache-node-modules@master
+      - uses: ipfs/aegir/actions/cache-node-modules@main
         with:
           directories: |
             ./examples/node_modules
@@ -30,7 +30,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-      - uses: ipfs/aegir/actions/cache-node-modules@master
+      - uses: ipfs/aegir/actions/cache-node-modules@main
         with:
           directories: |
             ./examples/node_modules
