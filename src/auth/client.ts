@@ -189,7 +189,7 @@ export class ClientAuth {
     const resp2 = await fetch(request)
 
     if (!resp2.ok) {
-      throw new BadResponseError(`Unexpected status code ${resp.status}`)
+      throw new BadResponseError(`Unexpected status code ${resp2.status}`)
     }
 
     const serverAuthHeader = resp2.headers.get('Authentication-Info')
