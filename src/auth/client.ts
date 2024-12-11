@@ -1,15 +1,20 @@
 import { publicKeyFromProtobuf, publicKeyToProtobuf } from '@libp2p/crypto/keys'
 import { peerIdFromPublicKey } from '@libp2p/peer-id'
 import { toString as uint8ArrayToString, fromString as uint8ArrayFromString } from 'uint8arrays'
+import { getAgent } from './agent.js'
 import { parseHeader, PeerIDAuthScheme, sign, verify } from './common.js'
 import { BadResponseError, InvalidPeerError, InvalidSignatureError, MissingAuthHeaderError } from './errors.js'
 import type { PeerId, PrivateKey } from '@libp2p/interface'
 import type { AbortOptions } from '@multiformats/multiaddr'
+import type { CookieAgent } from 'http-cookie-agent/undici'
+import type { CookieJar } from 'tough-cookie'
 
 export interface TokenInfo {
   creationTime: Date
   bearer: string
   peer: PeerId
+  agent: CookieAgent
+  jar: CookieJar
 }
 
 export interface AuthenticatedFetchOptions extends RequestInit {
@@ -79,7 +84,7 @@ export class ClientAuth {
     return `${PeerIDAuthScheme} ${encodedParams}`
   }
 
-  public bearerAuthHeaderWithPeer (hostname: string): { 'authorization': string, peer: PeerId } | undefined {
+  public bearerAuthHeaderWithPeer (hostname: string): { 'authorization': string, peer: PeerId, agent: CookieAgent, jar: CookieJar } | undefined {
     const token = this.tokens.get(hostname)
     if (token == null) {
       return undefined
@@ -88,7 +93,12 @@ export class ClientAuth {
       this.tokens.delete(hostname)
       return undefined
     }
-    return { authorization: `${PeerIDAuthScheme} bearer="${token.bearer}"`, peer: token.peer }
+    return {
+      authorization: `${PeerIDAuthScheme} bearer="${token.bearer}"`,
+      peer: token.peer,
+      agent: token.agent,
+      jar: token.jar
+    }
   }
 
   public bearerAuthHeader (hostname: string): string | undefined {
@@ -128,7 +138,12 @@ export class ClientAuth {
     if (this.tokens.has(hostname)) {
       const token = this.bearerAuthHeaderWithPeer(hostname)
       if (token !== undefined) {
+        // @ts-expect-error not in types
+        request.dispatcher = token.agent
         request.headers.set('Authorization', token.authorization)
+
+        await addCookiesToRequest(request, token.jar)
+
         return { peer: token.peer, response: await fetch(request) }
       } else {
         this.tokens.delete(hostname)
@@ -146,9 +161,15 @@ export class ClientAuth {
       })
     }
 
+    const { agent, jar } = getAgent()
+
     const resp = await fetch(authEndpointURI, {
+      method: 'OPTIONS',
       headers,
-      signal: request.signal
+      signal: request.signal,
+
+      // @ts-expect-error not in types
+      dispatcher: agent
     })
 
     // Verify the server's challenge
@@ -185,7 +206,12 @@ export class ClientAuth {
       sig: uint8ArrayToString(sig, 'base64urlpad')
     })
 
+    // @ts-expect-error not in types
+    request.dispatcher = agent
     request.headers.set('Authorization', authenticateSelfHeaders)
+
+    await addCookiesToRequest(request, jar)
+
     const resp2 = await fetch(request)
 
     if (!resp2.ok) {
@@ -201,7 +227,9 @@ export class ClientAuth {
     this.tokens.set(hostname, {
       peer: serverID,
       creationTime: new Date(),
-      bearer: serverAuthFields.bearer
+      bearer: serverAuthFields.bearer,
+      agent,
+      jar
     })
 
     return { peer: serverID, response: resp2 }
@@ -211,4 +239,12 @@ export class ClientAuth {
     const req = new Request(authEndpointURI, { signal: options?.signal })
     return (await this.authenticatedFetch(req, options)).peer
   }
+}
+
+async function addCookiesToRequest (request: Request, jar: CookieJar): Promise<void> {
+  const cookies = await jar.getCookies(request.url.toString())
+
+  cookies.forEach(cookie => {
+    request.headers.append('Cookie', cookie.cookieString())
+  })
 }
