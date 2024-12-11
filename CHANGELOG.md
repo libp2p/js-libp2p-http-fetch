@@ -1,3 +1,13 @@
+## [2.1.1](https://github.com/libp2p/js-libp2p-http-fetch/compare/v2.1.0...v2.1.1) (2024-12-11)
+
+### Bug Fixes
+
+* log correct response status ([#48](https://github.com/libp2p/js-libp2p-http-fetch/issues/48)) ([e23855b](https://github.com/libp2p/js-libp2p-http-fetch/commit/e23855b440f30f3cadf998f2dfb46a3e50c85dba))
+
+### Dependencies
+
+* bump @multiformats/multiaddr-to-uri from 10.1.2 to 11.0.0 ([#46](https://github.com/libp2p/js-libp2p-http-fetch/issues/46)) ([a7960e6](https://github.com/libp2p/js-libp2p-http-fetch/commit/a7960e6f0fe6823ac4fe62712f8534fc13add9ae))
+
 ## [2.1.0](https://github.com/libp2p/js-libp2p-http-fetch/compare/v2.0.2...v2.1.0) (2024-11-01)
 
 ### Features
