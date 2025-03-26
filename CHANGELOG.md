@@ -1,3 +1,9 @@
+## [2.2.1](https://github.com/libp2p/js-libp2p-http-fetch/compare/v2.2.0...v2.2.1) (2025-03-26)
+
+### Bug Fixes
+
+* replace @perseveranza-pets/milo with @achingbrain/http-parser-js ([#51](https://github.com/libp2p/js-libp2p-http-fetch/issues/51)) ([7466502](https://github.com/libp2p/js-libp2p-http-fetch/commit/7466502a51f87a2626a53fb0ad4607e06e7d716c)), closes [#35](https://github.com/libp2p/js-libp2p-http-fetch/issues/35)
+
 ## [2.2.0](https://github.com/libp2p/js-libp2p-http-fetch/compare/v2.1.1...v2.2.0) (2025-03-26)
 
 ### Features
