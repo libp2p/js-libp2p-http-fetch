@@ -1,3 +1,13 @@
+## [2.2.2](https://github.com/libp2p/js-libp2p-http-fetch/compare/v2.2.1...v2.2.2) (2025-03-26)
+
+### Bug Fixes
+
+* add methods ([#54](https://github.com/libp2p/js-libp2p-http-fetch/issues/54)) ([7cd3ce6](https://github.com/libp2p/js-libp2p-http-fetch/commit/7cd3ce69020248816f98d27d3f0809af60befe89))
+
+### Trivial Changes
+
+* **deps:** bump golang.org/x/crypto ([#50](https://github.com/libp2p/js-libp2p-http-fetch/issues/50)) ([c5407c6](https://github.com/libp2p/js-libp2p-http-fetch/commit/c5407c62d29a8376f720ba256f58ab7a718be823))
+
 ## [2.2.1](https://github.com/libp2p/js-libp2p-http-fetch/compare/v2.2.0...v2.2.1) (2025-03-26)
 
 ### Bug Fixes
