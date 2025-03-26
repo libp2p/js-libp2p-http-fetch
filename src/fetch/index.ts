@@ -9,14 +9,44 @@ import { type Uint8ArrayList } from 'uint8arraylist'
 
 interface Fetch { (req: Request): Promise<Response> }
 
-const METHOD_GET = 1
+const METHODS = [
+  'DELETE',
+  'GET',
+  'HEAD',
+  'POST',
+  'PUT',
+  'CONNECT',
+  'OPTIONS',
+  'TRACE',
+  'COPY',
+  'LOCK',
+  'MKCOL',
+  'MOVE',
+  'PROPFIND',
+  'PROPPATCH',
+  'SEARCH',
+  'UNLOCK',
+  'BIND',
+  'REBIND',
+  'UNBIND',
+  'ACL',
+  'REPORT',
+  'MKACTIVITY',
+  'CHECKOUT',
+  'MERGE',
+  'M-SEARCH',
+  'NOTIFY',
+  'SUBSCRIBE',
+  'UNSUBSCRIBE',
+  'PATCH',
+  'PURGE',
+  'MKCALENDAR',
+  'LINK',
+  'UNLINK'
+]
 
 function getStringMethod (method: number): string {
-  if (method === 1) {
-    return 'GET'
-  }
-
-  return 'UNKNOWN'
+  return METHODS[method] ?? 'UNKNOWN'
 }
 
 interface Duplex<TSource, TSink = TSource, RSink = Promise<void>> {
@@ -129,7 +159,7 @@ export function readHTTPMsg (expectRequest: boolean, r: Duplex<Uint8Array | Uint
         // Headers are parsed. We can return the response
         try {
           if (expectRequest) {
-            if (info.method === METHOD_GET) {
+            if (getStringMethod(info.method) === 'GET') {
               reqBody = null
             }
 
