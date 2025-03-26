@@ -167,13 +167,15 @@
     "release": "aegir release"
   },
   "dependencies": {
+    "@achingbrain/http-parser-js": "^0.5.8",
     "@libp2p/crypto": "^5.0.6",
     "@libp2p/interface": "^2.2.0",
     "@libp2p/interface-internal": "^2.0.10",
     "@libp2p/peer-id": "^5.0.7",
     "@multiformats/multiaddr": "^12.3.0",
     "@multiformats/multiaddr-to-uri": "^11.0.0",
-    "@perseveranza-pets/milo": "^0.2.1",
+    "buffer": "^6.0.3",
+    "http-parser-js": "^0.5.9",
     "p-defer": "^4.0.1",
     "uint8-varint": "^2.0.4",
     "uint8arraylist": "^2.4.8",

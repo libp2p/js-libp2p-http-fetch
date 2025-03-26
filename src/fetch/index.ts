@@ -1,13 +1,23 @@
 /* eslint-disable max-depth */
 /* eslint-disable complexity */
 
+import { HTTPParser } from '@achingbrain/http-parser-js'
 import { multiaddr, protocols } from '@multiformats/multiaddr'
 import { multiaddrToUri } from '@multiformats/multiaddr-to-uri'
-// @ts-expect-error missing types
-import { milo } from '@perseveranza-pets/milo/index-with-wasm.js'
 import defer from 'p-defer'
-import { Uint8ArrayList, isUint8ArrayList } from 'uint8arraylist'
+import { type Uint8ArrayList } from 'uint8arraylist'
+
 interface Fetch { (req: Request): Promise<Response> }
+
+const METHOD_GET = 1
+
+function getStringMethod (method: number): string {
+  if (method === 1) {
+    return 'GET'
+  }
+
+  return 'UNKNOWN'
+}
 
 interface Duplex<TSource, TSink = TSource, RSink = Promise<void>> {
   source: AsyncIterable<TSource> | Iterable<TSource>
@@ -85,8 +95,6 @@ export async function handleRequestViaDuplex (s: Duplex<Uint8Array | Uint8ArrayL
   await writeResponseToDuplex(s, resp)
 }
 
-const BUFFER_SIZE = 16 << 10
-
 /**
  * Exported for testing.
  *
@@ -100,85 +108,37 @@ export function readHTTPMsg (expectRequest: boolean, r: Duplex<Uint8Array | Uint
   return [
     msgPromise.promise,
     (async () => {
-      const unconsumedChunks = new Uint8ArrayList()
-
-      const textDecoder = new TextDecoder()
-      const ptr = milo.alloc(BUFFER_SIZE)
-
-      const parser = milo.create()
-      // Simplifies implementation at the cost of storing data twice
-      milo.setManageUnconsumed(parser, true)
-
-      const bodyStreamControllerPromise = defer <ReadableStreamController<Uint8Array>>()
-      const body = new ReadableStream<Uint8Array>({
-        async start (controller) {
-          bodyStreamControllerPromise.resolve(controller)
-        }
-      })
-      const bodyStreamController = await bodyStreamControllerPromise.promise
-
-      // Response
-      let status = ''
-      let reason = ''
-
-      // Requests
-      let url = ''
-      let method = ''
-
+      const body = new TransformStream()
+      const writer = body.writable.getWriter()
+      let messageComplete = false
       let fulfilledMsgPromise = false
 
-      milo.setOnStatus(parser, (_: unknown, from: number, size: number) => {
-        status = textDecoder.decode(unconsumedChunks.subarray(from, from + size))
-      })
-      milo.setOnReason(parser, (_: unknown, from: number, size: number) => {
-        reason = textDecoder.decode(unconsumedChunks.subarray(from, from + size))
-      })
-      milo.setOnUrl(parser, (_: unknown, from: number, size: number) => {
-        url = textDecoder.decode(unconsumedChunks.subarray(from, from + size))
-      })
-      milo.setOnMethod(parser, (_: unknown, from: number, size: number) => {
-        method = textDecoder.decode(unconsumedChunks.subarray(from, from + size))
-      })
+      const parser = new HTTPParser(expectRequest ? 'REQUEST' : 'RESPONSE')
+      parser[HTTPParser.kOnHeadersComplete] = (info) => {
+        fulfilledMsgPromise = true
 
-      milo.setOnRequest(parser, () => {
-        if (!expectRequest) {
-          msgPromise.reject(new Error('Received request instead of response'))
-          fulfilledMsgPromise = true
+        // Handle the headers
+        const headers = new Headers()
+
+        for (let i = 0; i < info.headers.length; i += 2) {
+          headers.set(info.headers[i], info.headers[i + 1])
         }
-      })
-      milo.setOnResponse(parser, () => {
-        if (expectRequest) {
-          msgPromise.reject(new Error('Received response instead of request'))
-          fulfilledMsgPromise = true
-        }
-      })
 
-      // Handle the headers
-      const headers = new Headers()
-      let lastHeaderName: string = ''
+        let reqBody: ReadableStream | null = body.readable
 
-      milo.setOnHeaderName(parser, (_: unknown, from: number, size: number) => {
-        lastHeaderName = textDecoder.decode(unconsumedChunks.subarray(from, from + size))
-      })
-      milo.setOnHeaderValue(parser, (_: unknown, from: number, size: number) => {
-        const headerVal = textDecoder.decode(unconsumedChunks.subarray(from, from + size))
-        headers.set(lastHeaderName, headerVal)
-      })
-      milo.setOnHeaders(parser, (_: unknown, from: number, size: number) => {
         // Headers are parsed. We can return the response
         try {
           if (expectRequest) {
-            let reqBody: ReadableStream<Uint8Array> | null = body
-            if (method === 'GET') {
+            if (info.method === METHOD_GET) {
               reqBody = null
             }
 
-            const urlWithHost = `https://${headers.get('Host') ?? 'unknown_host._libp2p'}${url}`
+            const urlWithHost = `https://${headers.get('Host') ?? 'unknown_host._libp2p'}${info.url}`
             detectBrokenRequestBody().then(async (broken) => {
               let req: Request
               if (!broken) {
                 req = new Request(urlWithHost, {
-                  method,
+                  method: getStringMethod(info.method),
                   body: reqBody,
                   headers,
                   // @ts-expect-error this is required by NodeJS despite being the only reasonable option https://fetch.spec.whatwg.org/#requestinit
@@ -187,7 +147,7 @@ export function readHTTPMsg (expectRequest: boolean, r: Duplex<Uint8Array | Uint
               } else {
                 if (reqBody === null) {
                   req = new Request(urlWithHost, {
-                    method,
+                    method: getStringMethod(info.method),
                     headers
                   })
                 } else {
@@ -211,7 +171,7 @@ export function readHTTPMsg (expectRequest: boolean, r: Duplex<Uint8Array | Uint
                     offset += parts[i].byteLength
                   }
                   req = new Request(urlWithHost, {
-                    method,
+                    method: getStringMethod(info.method),
                     body,
                     headers
                   })
@@ -223,14 +183,14 @@ export function readHTTPMsg (expectRequest: boolean, r: Duplex<Uint8Array | Uint
               msgPromise.reject(err)
             })
           } else {
-            let respBody: ReadableStream<Uint8Array> | null = body
-            if (status === '204') {
+            let respBody: ReadableStream<Uint8Array> | null = body.readable
+            if (info.statusCode === 204) {
               respBody = null
             }
             const resp = new Response(respBody, {
               headers,
-              status: parseInt(status),
-              statusText: reason
+              status: info.statusCode,
+              statusText: info.statusMessage
             })
             msgPromise.resolve(resp)
             fulfilledMsgPromise = true
@@ -238,48 +198,36 @@ export function readHTTPMsg (expectRequest: boolean, r: Duplex<Uint8Array | Uint
         } catch (error) {
           msgPromise.reject(error)
         }
-      })
-
-      // Handle the body
-      milo.setOnData(parser, (_: unknown, from: number, size: number) => {
-        const c: Uint8Array = unconsumedChunks.subarray(from, from + size)
-        // @ts-expect-error Unclear why this fails typecheck. TODO debug
-        bodyStreamController.enqueue(c)
-      })
-      milo.setOnError(parser, () => {
-        bodyStreamController.error(new Error('Error parsing HTTP message'))
-      })
-
-      let messageComplete = false
-      milo.setOnMessageComplete(parser, () => {
-        bodyStreamController.close()
+      }
+      parser[HTTPParser.kOnBody] = (buf) => {
+        writer.write(buf)
+          .catch((err: Error) => {
+            msgPromise.reject(err)
+          })
+      }
+      parser[HTTPParser.kOnMessageComplete] = () => {
         messageComplete = true
-      })
+        writer.close()
+          .catch((err: Error) => {
+            msgPromise.reject(err)
+          })
+      }
 
       // Consume data
-      for await (let chunks of r.source) {
-        if (!isUint8ArrayList(chunks)) {
-          chunks = new Uint8ArrayList(chunks)
-        }
-        for (const chunk of chunks) {
-          unconsumedChunks.append(chunk)
-          const buffer = new Uint8Array(milo.memory.buffer, ptr, BUFFER_SIZE)
-          buffer.set(chunk, 0)
-          const consumed = milo.parse(parser, ptr, chunk.length)
-          unconsumedChunks.consume(consumed)
-        }
+      for await (const chunks of r.source) {
+        const chunk = chunks.subarray()
+        parser.execute(chunk)
       }
-      milo.finish(parser)
+
+      parser.finish()
 
       if (!messageComplete) {
-        bodyStreamController.error(new Error('Incomplete HTTP message'))
+        await writer.abort(new Error('Incomplete HTTP message'))
+
         if (!fulfilledMsgPromise) {
           msgPromise.reject(new Error('Incomplete HTTP message'))
         }
       }
-
-      milo.destroy(parser)
-      milo.dealloc(ptr, BUFFER_SIZE)
     })()
   ]
 }
