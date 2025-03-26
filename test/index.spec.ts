@@ -58,7 +58,7 @@ describe('whatwg-fetch', () => {
       return streams[1]
     })
 
-    clientComponents.connectionManager.openConnection.callsFake(async (peer: PeerId | Multiaddr | Multiaddr[], options?: any) => {
+    clientComponents.connectionManager.openConnection.callsFake(async (peer: PeerId | Multiaddr | Multiaddr[]) => {
       if (Array.isArray(peer)) {
         peer = peer[0]
       }

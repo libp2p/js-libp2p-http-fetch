@@ -3,6 +3,7 @@ import { peerIdFromPublicKey, peerIdFromString } from '@libp2p/peer-id'
 import { toString as uint8ArrayToString, fromString as uint8ArrayFromString } from 'uint8arrays'
 import { encodeAuthParams, parseHeader, PeerIDAuthScheme, sign, verify } from './common.js'
 import type { PeerId, PrivateKey, PublicKey, Logger } from '@libp2p/interface'
+import type http from 'node:http'
 
 export interface HttpHandler { (req: Request): Promise<Response> }
 
@@ -32,7 +33,7 @@ export class ServerAuth {
 
   withAuth (httpAuthedHandler: (peer: PeerId, req: Request) => Promise<Response>): HttpHandler {
     return async (req: Request): Promise<Response> => {
-      const authResp = await this.authenticateRequest(req)
+      const authResp = await this.authenticateRequest(this.readHostname(req), req.headers.get('Authorization') ?? undefined)
       if (authResp.status !== 200 || authResp.peer === undefined) {
         return new Response('', { status: authResp.status, headers: authResp.headers })
       }
@@ -55,17 +56,37 @@ export class ServerAuth {
     }
   }
 
+  requestListener (httpAuthedHandler: (peer: PeerId, req: http.IncomingMessage, res: http.ServerResponse) => void): http.RequestListener {
+    return (req: http.IncomingMessage, res: http.ServerResponse): void => {
+      Promise.resolve()
+        .then(async () => {
+          const authResp = await this.authenticateRequest(req.headers.host ?? '', req.headers.authorization)
+
+          for (const [key, value] of Object.entries(authResp.headers ?? {})) {
+            res.setHeader(key, value)
+          }
+
+          if (authResp.status !== 200 || authResp.peer === undefined) {
+            res.statusCode = authResp.status
+            res.end()
+
+            return
+          }
+
+          httpAuthedHandler(authResp.peer, req, res)
+        })
+        .catch(err => {
+          this.logger?.error('error handling request - %e', err)
+        })
+    }
+  }
+
   /* eslint-disable-next-line complexity */
-  private async authenticateRequest (req: Request): Promise<AuthenticationResponse> {
-    const hostname = this.readHostname(req)
+  private async authenticateRequest (hostname: string, authHeader?: string): Promise<AuthenticationResponse> {
     if (!this.validHostname(hostname)) {
       return { status: 400 }
     }
 
-    if (req.headers === undefined) {
-      return this.returnChallenge(hostname, null, {})
-    }
-    const authHeader = req.headers.get('Authorization')
     if (authHeader === null || authHeader === undefined || authHeader === '') {
       return this.returnChallenge(hostname, null, {})
     }
