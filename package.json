@@ -180,7 +180,7 @@
     "uint8-varint": "^2.0.4",
     "uint8arraylist": "^2.4.8",
     "uint8arrays": "^5.1.0",
-    "undici": "^6.21.0"
+    "undici": "^7.5.0"
   },
   "devDependencies": {
     "@libp2p/interface-compliance-tests": "^6.1.8",
