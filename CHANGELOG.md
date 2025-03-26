@@ -1,3 +1,13 @@
+## [2.2.0](https://github.com/libp2p/js-libp2p-http-fetch/compare/v2.1.1...v2.2.0) (2025-03-26)
+
+### Features
+
+* support cookies between requests ([#49](https://github.com/libp2p/js-libp2p-http-fetch/issues/49)) ([0600953](https://github.com/libp2p/js-libp2p-http-fetch/commit/0600953826fd743384ddc796a8cc4c0cacc69e5f)), closes [#16](https://github.com/libp2p/js-libp2p-http-fetch/issues/16)
+
+### Documentation
+
+* update comment style ([#52](https://github.com/libp2p/js-libp2p-http-fetch/issues/52)) ([37a6a74](https://github.com/libp2p/js-libp2p-http-fetch/commit/37a6a74c262763beed0035e038484a6c215793ed))
+
 ## [2.1.1](https://github.com/libp2p/js-libp2p-http-fetch/compare/v2.1.0...v2.1.1) (2024-12-11)
 
 ### Bug Fixes
