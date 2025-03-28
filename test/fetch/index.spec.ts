@@ -4,7 +4,7 @@
 import { expect } from 'aegir/chai'
 import { duplexPair } from 'it-pair/duplex'
 import { type Uint8ArrayList, isUint8ArrayList } from 'uint8arraylist'
-import { fetchViaDuplex, handleRequestViaDuplex } from '../../src/fetch/index.js'
+import { fetchViaDuplex, handleRequestViaDuplex } from '../../src/fetch.js'
 import { cases } from './cases/cases.js'
 
 describe('Roundtrips', () => {
@@ -12,7 +12,6 @@ describe('Roundtrips', () => {
     const [client, server] = duplexPair<Uint8Array | Uint8ArrayList>()
 
     const serverHandler = handleRequestViaDuplex(server, async (req) => {
-      console.log('Got request', req)
       return new Response('Hello World')
     }).catch((err) => {
       console.error('Error handling request', err)
@@ -41,7 +40,6 @@ describe('Make a fetch request via duplex', () => {
       reqToServer += decoder.decode(chunk)
     }
 
-    console.log(reqToServer)
     expect(reqToServer).to.equal('GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n')
 
     void server.sink((async function * () {
@@ -87,7 +85,6 @@ describe('Make a fetch request via duplex', () => {
       reqToServer += decoder.decode(chunk)
     }
 
-    console.log(reqToServer)
     expect(reqToServer).to.equal('POST /?foo=bar HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\ncontent-type: text/plain;charset=UTF-8\r\nx-test: foo\r\nTransfer-Encoding: chunked\r\n\r\nb\r\nhello world\r\n0\r\n\r\n')
 
     void server.sink((async function * () {

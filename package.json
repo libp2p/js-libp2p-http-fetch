@@ -1,8 +1,7 @@
 {
-  "name": "@libp2p/http-fetch",
-  "version": "2.2.2",
-  "description": "Implementation of the WHATWG Fetch API on libp2p streams",
-  "author": "@marcopolo",
+  "name": "@libp2p/http",
+  "version": "0.0.0",
+  "description": "Accept HTTP requests over libp2p streams or use libp2p protocols over HTTP",
   "license": "Apache-2.0 OR MIT",
   "homepage": "https://github.com/libp2p/js-libp2p-http-fetch#readme",
   "repository": {
@@ -53,9 +52,9 @@
       "types": "./dist/src/ping.d.ts",
       "import": "./dist/src/ping.js"
     },
-    "./well-known-handler": {
-      "types": "./dist/src/well-known-handler.d.ts",
-      "import": "./dist/src/well-known-handler.js"
+    "./servers/node": {
+      "types": "./dist/src/servers/node.d.ts",
+      "import": "./dist/src/servers/node.js"
     }
   },
   "eslintConfig": {
@@ -152,15 +151,16 @@
   },
   "scripts": {
     "build": "aegir build",
-    "test": "aegir test",
     "clean": "aegir clean",
     "lint": "aegir lint",
+    "test": "aegir test",
     "test:chrome": "aegir test -t browser --cov",
+    "test:firefox": "aegir test -t browser --browser firefox --cov",
+    "test:node": "aegir test -t node --cov",
+    "test:electron-main": "aegir test -t electron-main",
     "test:chrome-webworker": "aegir test -t webworker",
-    "test:firefox": "aegir test -t browser -- --browser firefox",
     "test:webkit": "aegir test -t browser -- --browser webkit",
     "test:firefox-webworker": "aegir test -t webworker -- --browser firefox",
-    "test:node": "aegir test -t node --cov",
     "dep-check": "aegir dep-check",
     "doc-check": "aegir doc-check",
     "docs": "aegir docs",
@@ -172,26 +172,50 @@
     "@libp2p/interface": "^2.2.0",
     "@libp2p/interface-internal": "^2.0.10",
     "@libp2p/peer-id": "^5.0.7",
+    "@libp2p/utils": "^6.6.0",
     "@multiformats/multiaddr": "^12.3.0",
     "@multiformats/multiaddr-to-uri": "^11.0.0",
+    "@multiformats/uri-to-multiaddr": "^9.0.1",
     "http-cookie-agent": "^6.0.7",
+    "it-byte-stream": "^2.0.1",
+    "it-queueless-pushable": "^2.0.0",
+    "it-to-browser-readablestream": "^2.0.10",
+    "multiformats": "^13.3.2",
     "p-defer": "^4.0.1",
+    "race-event": "^1.3.0",
+    "race-signal": "^1.1.3",
     "tough-cookie": "^5.0.0",
     "uint8-varint": "^2.0.4",
     "uint8arraylist": "^2.4.8",
     "uint8arrays": "^5.1.0",
-    "undici": "^6.21.0"
+    "undici": "^6.21.2"
   },
   "devDependencies": {
-    "@libp2p/interface-compliance-tests": "^6.1.8",
-    "@libp2p/logger": "^5.1.3",
+    "@chainsafe/libp2p-noise": "^16.1.0",
+    "@chainsafe/libp2p-yamux": "^7.0.1",
+    "@fastify/websocket": "^11.0.2",
+    "@libp2p/memory": "^1.1.4",
+    "@libp2p/ping": "^2.0.27",
+    "@libp2p/websockets": "^9.2.8",
+    "@types/express": "^5.0.1",
+    "@types/ws": "^8.18.0",
     "aegir": "^45.0.0",
+    "express": "^4.21.2",
+    "fastify": "^5.2.2",
     "it-pair": "^2.0.6",
     "libp2p": "^2.2.1",
-    "sinon-ts": "^2.0.0"
+    "wherearewe": "^2.0.1",
+    "ws": "^8.18.1"
   },
   "browser": {
-    "./dist/src/auth/agent.js": "./dist/src/auth/agent.browser.js"
+    "./dist/src/auth/agent.js": "./dist/src/auth/agent.browser.js",
+    "./dist/src/http.js": "./dist/src/http.browser.js",
+    "./dist/src/http/index.js": "./dist/src/http/index.browser.js",
+    "./dist/test/index.spec.js": "./dist/test/index.browser.spec.js",
+    "node:events": "events",
+    "node:stream": "readable-stream",
+    "node:http": false,
+    "undici": false
   },
   "sideEffects": false
 }
