@@ -54,7 +54,7 @@ export interface AuthenticateServerOptions extends AbortOptions {
   hostname?: AuthenticatedFetchOptions['hostname']
 }
 
-interface DoAuthenticatedFetchOptions {
+export interface DoAuthenticatedFetchOptions {
   fetch?: AuthenticatedFetchOptions['fetch']
   hostname?: AuthenticatedFetchOptions['hostname']
 }
