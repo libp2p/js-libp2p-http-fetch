@@ -12,7 +12,8 @@
     "clean": "aegir clean",
     "lint": "aegir lint",
     "dep-check": "aegir dep-check",
-    "test": "test-node-example test/*"
+    "test": "npm run test:node",
+    "test:node": "test-node-example test/*"
   },
   "dependencies": {
     "@chainsafe/libp2p-noise": "^17.0.0",

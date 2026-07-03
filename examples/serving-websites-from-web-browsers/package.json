@@ -14,7 +14,8 @@
     "build": "vite build",
     "relay": "node ./src/relay.js",
     "proxy": "node ./src/proxy.js",
-    "test": "npm run build && test-browser-example test",
+    "test": "npm run test:chrome",
+    "test:chrome": "npm run build && test-browser-example test",
     "clean": "aegir clean",
     "lint": "aegir lint",
     "dep-check": "aegir dep-check"
