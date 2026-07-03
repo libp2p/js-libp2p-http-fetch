@@ -1,6 +1,6 @@
 {
   "name": "@libp2p/http-ping",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "An HTTP version of the ping protocol",
   "license": "Apache-2.0 OR MIT",
   "homepage": "https://github.com/libp2p/js-libp2p-http/tree/main/packages/http-ping#readme",
