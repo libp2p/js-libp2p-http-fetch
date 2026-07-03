@@ -1,3 +1,9 @@
+## [@libp2p/http-v2.0.5](https://github.com/libp2p/js-libp2p-http/compare/@libp2p/http-2.0.4...@libp2p/http-2.0.5) (2026-07-03)
+
+### Bug Fixes
+
+* strip cookie headers from immutable responses ([#141](https://github.com/libp2p/js-libp2p-http/issues/141)) ([9e73e64](https://github.com/libp2p/js-libp2p-http/commit/9e73e64a5496eda1b2173d2860b01c53ebc8bba5))
+
 ## [@libp2p/http-v2.0.4](https://github.com/libp2p/js-libp2p-http/compare/@libp2p/http-2.0.3...@libp2p/http-2.0.4) (2026-06-15)
 
 ### Bug Fixes
