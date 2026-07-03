@@ -1,6 +1,6 @@
 {
   "name": "@libp2p/http-peer-id-auth",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "An implementation of Peer ID Authentication over HTTP",
   "license": "Apache-2.0 OR MIT",
   "homepage": "https://github.com/libp2p/js-libp2p-http/tree/main/packages/http-peer-id-auth#readme",
