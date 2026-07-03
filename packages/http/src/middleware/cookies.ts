@@ -3,7 +3,6 @@ import * as cookie from 'cookie'
 import type { Middleware, MiddlewareOptions } from '@libp2p/http-utils'
 import type { ComponentLogger, Logger } from '@libp2p/interface'
 import type { Multiaddr } from '@multiformats/multiaddr'
-import type { SetCookie } from 'cookie'
 
 interface CookiesComponents {
   logger: ComponentLogger
