@@ -146,8 +146,8 @@
     "@libp2p/crypto": "^5.1.15",
     "@libp2p/interface": "^3.2.0",
     "@libp2p/peer-id": "^6.0.6",
-    "uint8-varint": "^2.0.4",
-    "uint8arrays": "^5.1.0"
+    "uint8-varint": "^3.0.0",
+    "uint8arrays": "^6.1.1"
   },
   "devDependencies": {
     "aegir": "^48.0.11"
