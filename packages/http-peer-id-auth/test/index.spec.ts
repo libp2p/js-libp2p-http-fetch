@@ -1,4 +1,3 @@
-/* eslint-env mocha */
 import { generateKeyPair, privateKeyFromProtobuf } from '@libp2p/crypto/keys'
 import { peerIdFromPrivateKey } from '@libp2p/peer-id'
 import { expect } from 'aegir/chai'

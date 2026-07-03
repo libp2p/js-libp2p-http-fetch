@@ -69,10 +69,6 @@
               "release": "patch"
             },
             {
-              "type": "chore",
-              "release": "patch"
-            },
-            {
               "scope": "no-release",
               "release": false
             }
