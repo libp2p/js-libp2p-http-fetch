@@ -1,3 +1,9 @@
+## [@libp2p/http-v2.0.6](https://github.com/libp2p/js-libp2p-http/compare/@libp2p/http-2.0.5...@libp2p/http-2.0.6) (2026-07-03)
+
+### Bug Fixes
+
+* update deps ([#142](https://github.com/libp2p/js-libp2p-http/issues/142)) ([9c9d03e](https://github.com/libp2p/js-libp2p-http/commit/9c9d03eccac6ea597aa35a28fa21d9baedb75009))
+
 ## [@libp2p/http-v2.0.5](https://github.com/libp2p/js-libp2p-http/compare/@libp2p/http-2.0.4...@libp2p/http-2.0.5) (2026-07-03)
 
 ### Bug Fixes
