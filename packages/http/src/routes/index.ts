@@ -1,2 +1,2 @@
-export * from './peer-id-auth.js'
-export * from './websocket.js'
+export * from './peer-id-auth.ts'
+export * from './websocket.ts'

@@ -1,8 +1,8 @@
 import { EventEmitter } from 'node:events'
 import { HTTPParser } from '@achingbrain/http-parser-js'
 import { NOT_IMPLEMENTED_ERROR } from '@libp2p/http-utils'
-import { IncomingMessage as IncomingMessageClass } from './incoming-message.js'
-import { ServerResponse as ServerResponseClass } from './server-response.js'
+import { IncomingMessage as IncomingMessageClass } from './incoming-message.ts'
+import { ServerResponse as ServerResponseClass } from './server-response.ts'
 import type { ServerOptions, ServerResponse, IncomingMessage } from 'node:http'
 import type { AddressInfo, Socket } from 'node:net'
 

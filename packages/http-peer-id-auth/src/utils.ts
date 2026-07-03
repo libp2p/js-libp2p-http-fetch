@@ -1,8 +1,8 @@
 import { InvalidMessageError } from '@libp2p/interface'
 import * as varint from 'uint8-varint'
 import { toString as uint8ArrayToString, fromString as uint8ArrayFromString } from 'uint8arrays'
-import { PEER_ID_AUTH_SCHEME } from './index.js'
-import type { OpaqueDataHeader } from './index.js'
+import { PEER_ID_AUTH_SCHEME } from './index.ts'
+import type { OpaqueDataHeader } from './index.ts'
 import type { PeerId, PrivateKey, PublicKey } from '@libp2p/interface'
 
 export interface OpaqueUnwrapped {

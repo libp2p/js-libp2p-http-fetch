@@ -2,7 +2,7 @@ import { MissingAuthHeaderError, DEFAULT_AUTH_TOKEN_TTL, ClientInitiatedHandshak
 import { getHost, isWebSocketUpgrade } from '@libp2p/http-utils'
 import { InvalidMessageError, InvalidParametersError } from '@libp2p/interface'
 import { CODE_P2P } from '@multiformats/multiaddr'
-import type { Middleware, MiddlewareOptions, HTTP } from '../index.js'
+import type { Middleware, MiddlewareOptions, HTTP } from '../index.ts'
 import type { VerifyPeer } from '@libp2p/http-peer-id-auth'
 import type { ComponentLogger, PeerId, PrivateKey } from '@libp2p/interface'
 import type { Multiaddr } from '@multiformats/multiaddr'
@@ -138,28 +138,34 @@ export class PeerIdAuth implements Middleware {
     return authorization
   }
 
-  processResponse (resource: URL | Multiaddr[], opts: MiddlewareOptions, response: Response): void {
+  processResponse (resource: URL | Multiaddr[], opts: MiddlewareOptions, response: Response): Response | void {
     const key = getCacheKey(resource, opts.headers)
     const token = this.tokens.get(key)
+
+    // Some parts of fetch responses, such as headers, may be immutable so
+    // create a replacement response when we need to change them.
+    let output = response
 
     // add the remote peer id as a response header
     if (token?.peerId != null) {
       const headers = new Headers(response.headers)
       headers.set('x-libp2p-peer-id', token.peerId.toString())
 
-      // the headers property is read-only so we can't just re-assign it
-      response = new Response(response.body, {
+      output = new Response(response.body, {
         status: response.status,
+        statusText: response.statusText,
         headers
       })
     }
 
     // store the bearer token if the server provided it
-    const serverAuthHeader = response.headers.get('authentication-info')
+    const serverAuthHeader = output.headers.get('authentication-info')
 
     if (serverAuthHeader != null && token != null) {
       token.authorization = token.handshake.decodeBearerToken(serverAuthHeader)
     }
+
+    return output
   }
 }
 

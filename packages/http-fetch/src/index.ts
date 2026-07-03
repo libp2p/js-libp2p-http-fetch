@@ -6,8 +6,8 @@
  * socket.
  */
 
-import { readResponse } from './read-response.js'
-import { sendRequest } from './send-request.js'
+import { readResponse } from './read-response.ts'
+import { sendRequest } from './send-request.ts'
 import type { Logger, Stream } from '@libp2p/interface'
 
 export interface FetchInit extends RequestInit {

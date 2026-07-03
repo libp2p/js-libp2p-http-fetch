@@ -2,7 +2,7 @@ import { Writable } from 'node:stream'
 import { STATUS_CODES } from '@libp2p/http-utils'
 import { InvalidParametersError } from '@libp2p/interface'
 import { fromString as uint8arrayFromString } from 'uint8arrays/from-string'
-import type { IncomingMessage } from './incoming-message.js'
+import type { IncomingMessage } from './incoming-message.ts'
 import type { OutgoingHttpHeader, OutgoingHttpHeaders } from 'node:http'
 import type { Socket } from 'node:net'
 

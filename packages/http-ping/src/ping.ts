@@ -3,8 +3,8 @@ import { ProtocolError, serviceDependencies } from '@libp2p/interface'
 import { raceEvent } from 'race-event'
 import { raceSignal } from 'race-signal'
 import { equals as uint8ArrayEquals } from 'uint8arrays/equals'
-import { HTTP_PING_PROTOCOL } from './index.js'
-import type { PingHTTPComponents, PingHTTPInit, PingHTTP as PingHTTPInterface, PingHTTPOptions, PingWebSocketOptions } from './index.js'
+import { HTTP_PING_PROTOCOL } from './index.ts'
+import type { PingHTTPComponents, PingHTTPInit, PingHTTP as PingHTTPInterface, PingHTTPOptions, PingWebSocketOptions } from './index.ts'
 import type { Logger, PeerId, Startable } from '@libp2p/interface'
 import type { Multiaddr } from '@multiformats/multiaddr'
 
@@ -106,7 +106,7 @@ export class PingHTTPService implements PingHTTPInterface, Startable {
     return Date.now() - start
   }
 
-  async httpPing (peer: string | URL | PeerId | Multiaddr | Multiaddr[], buf: Uint8Array, options: PingHTTPOptions): Promise<ArrayBuffer> {
+  async httpPing (peer: string | URL | PeerId | Multiaddr | Multiaddr[], buf: Uint8Array<ArrayBuffer>, options: PingHTTPOptions): Promise<ArrayBuffer> {
     const res = await this.components.http.fetchProtocol(peer, HTTP_PING_PROTOCOL, {
       ...options,
       method: 'POST',
@@ -121,7 +121,7 @@ export class PingHTTPService implements PingHTTPInterface, Startable {
     return res.arrayBuffer()
   }
 
-  async webSocketPing (peer: string | URL | PeerId | Multiaddr | Multiaddr[], buf: Uint8Array, options: PingHTTPOptions): Promise<ArrayBuffer> {
+  async webSocketPing (peer: string | URL | PeerId | Multiaddr | Multiaddr[], buf: Uint8Array<ArrayBuffer>, options: PingHTTPOptions): Promise<ArrayBuffer> {
     const socket = await this.components.http.connectProtocol(peer, HTTP_PING_PROTOCOL, {
       ...options,
       signal: options.signal ?? undefined

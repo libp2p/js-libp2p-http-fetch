@@ -1,8 +1,8 @@
-import { blobBody } from './body/blob.js'
-import { bytesBody } from './body/bytes.js'
-import { formDataBody } from './body/form-data.js'
-import { readableStreamBody } from './body/readable-stream.js'
-import { stringBody } from './body/string.js'
+import { blobBody } from './body/blob.ts'
+import { bytesBody } from './body/bytes.ts'
+import { formDataBody } from './body/form-data.ts'
+import { readableStreamBody } from './body/readable-stream.ts'
+import { stringBody } from './body/string.ts'
 
 export function normalizeContent (body: BodyInit | null | undefined, headers: Headers): ReadableStream | undefined {
   if (body == null) {

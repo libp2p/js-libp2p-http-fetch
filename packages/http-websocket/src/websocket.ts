@@ -2,11 +2,11 @@ import { getHeaders } from '@libp2p/http-utils'
 import { InvalidParametersError, TypedEventEmitter } from '@libp2p/interface'
 import { isPromise, byteStream } from '@libp2p/utils'
 import { Uint8ArrayList } from 'uint8arraylist'
-import { CloseEvent, ErrorEvent } from './events.js'
-import { encodeMessage, decodeMessage, CLOSE_MESSAGES } from './message.js'
-import { performClientUpgrade, performServerUpgrade, readResponse, toBytes } from './utils.js'
-import type { CloseListener, ErrorListener, MessageListener, OpenListener, WebSocketEvents, WebSocketInit } from './index.js'
-import type { MESSAGE_TYPE } from './message.js'
+import { CloseEvent, ErrorEvent } from './events.ts'
+import { encodeMessage, decodeMessage, CLOSE_MESSAGES } from './message.ts'
+import { performClientUpgrade, performServerUpgrade, readResponse, toBytes } from './utils.ts'
+import type { CloseListener, ErrorListener, MessageListener, OpenListener, WebSocketEvents, WebSocketInit } from './index.ts'
+import type { MESSAGE_TYPE } from './message.ts'
 import type { HeaderInfo } from '@libp2p/http-utils'
 import type { AbortOptions, Stream } from '@libp2p/interface'
 import type { ConnectionManager } from '@libp2p/interface-internal'
@@ -32,7 +32,7 @@ abstract class AbstractWebSocket extends TypedEventEmitter<WebSocketEvents> {
   public bufferedAmount = 0
   public extensions = ''
   public protocol: string = ''
-  public readyState: number
+  public readyState: 0 | 1 | 2 | 3
   public url: string
 
   public CONNECTING: 0 = 0
@@ -64,7 +64,7 @@ abstract class AbstractWebSocket extends TypedEventEmitter<WebSocketEvents> {
     this.maxMessageSize = init.maxMessageSize ?? MAX_MESSAGE_SIZE
   }
 
-  send (data: string | Blob | Uint8Array | ArrayBuffer | DataView): void {
+  send (data: string | Blob | BufferSource): void {
     if (this.readyState !== this.OPEN) {
       throw new Error('WebSocket was not open')
     }
@@ -172,7 +172,7 @@ abstract class AbstractWebSocket extends TypedEventEmitter<WebSocketEvents> {
         let data: Blob | ArrayBuffer | ArrayBufferLike
 
         if (this.binaryType === 'blob') {
-          data = new Blob([message.data])
+          data = new Blob([Uint8Array.from(message.data)])
         } else {
           if (message.data.byteOffset === 0 && message.data.byteLength === message.data.buffer.byteLength) {
             // Uint8Array aligns with underlying ArrayBuffer

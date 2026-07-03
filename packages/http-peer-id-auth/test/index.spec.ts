@@ -1,11 +1,10 @@
-/* eslint-env mocha */
 import { generateKeyPair, privateKeyFromProtobuf } from '@libp2p/crypto/keys'
 import { peerIdFromPrivateKey } from '@libp2p/peer-id'
 import { expect } from 'aegir/chai'
 import { fromString as uint8ArrayFromString } from 'uint8arrays'
-import { ClientInitiatedHandshake, ServerInitiatedHandshake } from '../src/client.js'
-import { PEER_ID_AUTH_SCHEME, createServerChallenge, serverResponds } from '../src/index.js'
-import { sign, verify } from '../src/utils.js'
+import { ClientInitiatedHandshake, ServerInitiatedHandshake } from '../src/client.ts'
+import { PEER_ID_AUTH_SCHEME, createServerChallenge, serverResponds } from '../src/index.ts'
+import { sign, verify } from '../src/utils.ts'
 import type { PeerId, PrivateKey } from '@libp2p/interface'
 
 describe('@libp2p/http-peer-id-auth', () => {

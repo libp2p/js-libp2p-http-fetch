@@ -1,9 +1,9 @@
 import { createServerChallenge, serverResponds } from '@libp2p/http-peer-id-auth'
 import { normalizeMethod } from '@libp2p/http-utils'
-import { WEBSOCKET_HANDLER } from '../constants.js'
-import { initializeRoute } from './utils.js'
-import { webSocketRoute } from './websocket.js'
-import type { HTTPRoute, HandlerRoute } from '../index.js'
+import { WEBSOCKET_HANDLER } from '../constants.ts'
+import { initializeRoute } from './utils.ts'
+import { webSocketRoute } from './websocket.ts'
+import type { HTTPRoute, HandlerRoute } from '../index.ts'
 import type { ComponentLogger, Logger, PeerId, PrivateKey } from '@libp2p/interface'
 
 export const DEFAULT_AUTH_TOKEN_TTL = 60 * 60 * 1000 // 1 hour

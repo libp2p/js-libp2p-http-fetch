@@ -1,11 +1,9 @@
-/* eslint-env mocha */
-
 import { readHeaders, responseToStream, streamToRequest } from '@libp2p/http-utils'
 import { streamPair } from '@libp2p/utils'
 import { expect } from 'aegir/chai'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import { fetch } from '../src/index.js'
-import { cases } from './fixtures/cases.js'
+import { fetch } from '../src/index.ts'
+import { cases } from './fixtures/cases.ts'
 import type { Stream } from '@libp2p/interface'
 
 function serve (server: Stream, handler: (req: Request) => Response | Promise<Response>): void {

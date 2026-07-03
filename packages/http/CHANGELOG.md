@@ -1,3 +1,28 @@
+## [@libp2p/http-v2.0.5](https://github.com/libp2p/js-libp2p-http/compare/@libp2p/http-2.0.4...@libp2p/http-2.0.5) (2026-07-03)
+
+### Bug Fixes
+
+* strip cookie headers from immutable responses ([#141](https://github.com/libp2p/js-libp2p-http/issues/141)) ([9e73e64](https://github.com/libp2p/js-libp2p-http/commit/9e73e64a5496eda1b2173d2860b01c53ebc8bba5))
+
+## [@libp2p/http-v2.0.4](https://github.com/libp2p/js-libp2p-http/compare/@libp2p/http-2.0.3...@libp2p/http-2.0.4) (2026-06-15)
+
+### Bug Fixes
+
+* preserve peer ID auth response headers ([#140](https://github.com/libp2p/js-libp2p-http/issues/140)) ([cd8a7be](https://github.com/libp2p/js-libp2p-http/commit/cd8a7beefb202b39dd80472cadc1275b86385607))
+
+## [@libp2p/http-v2.0.3](https://github.com/libp2p/js-libp2p-http/compare/@libp2p/http-2.0.2...@libp2p/http-2.0.3) (2026-06-14)
+
+### Trivial Changes
+
+* bump aegir, multiformats, multiaddr, uint8arraylist deps ([#138](https://github.com/libp2p/js-libp2p-http/issues/138)) ([0c0f7b4](https://github.com/libp2p/js-libp2p-http/commit/0c0f7b4330bc96a8561f0985f742fba9b6badaf6))
+* release on chore ([#139](https://github.com/libp2p/js-libp2p-http/issues/139)) ([6aa226c](https://github.com/libp2p/js-libp2p-http/commit/6aa226c53bb4ad6a89c2ae1bd269b641e0ab3a4a))
+
+## [@libp2p/http-v2.0.2](https://github.com/libp2p/js-libp2p-http/compare/@libp2p/http-2.0.1...@libp2p/http-2.0.2) (2026-04-28)
+
+### Bug Fixes
+
+* support require ([#135](https://github.com/libp2p/js-libp2p-http/issues/135)) ([0c59999](https://github.com/libp2p/js-libp2p-http/commit/0c59999878e22dff36b425aeab529de4d3fe8eec))
+
 ## [@libp2p/http-v2.0.1](https://github.com/libp2p/js-libp2p-http/compare/@libp2p/http-2.0.0...@libp2p/http-2.0.1) (2025-10-13)
 
 ### Bug Fixes

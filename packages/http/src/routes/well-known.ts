@@ -1,6 +1,6 @@
-import { webSocketRoute } from './websocket.js'
-import type { HTTPRoute } from '../index.js'
-import type { HTTPRegistrar } from '../registrar.js'
+import { webSocketRoute } from './websocket.ts'
+import type { HTTPRoute } from '../index.ts'
+import type { HTTPRegistrar } from '../registrar.ts'
 
 export const WELL_KNOWN_PROTOCOLS_PATH = '/.well-known/libp2p/protocols'
 

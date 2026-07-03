@@ -4,13 +4,17 @@ import { InvalidParametersError, StreamMessageEvent } from '@libp2p/interface'
 import { base64pad } from 'multiformats/bases/base64'
 import { raceEvent } from 'race-event'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import { StreamWebSocket } from './websocket.js'
+import { StreamWebSocket } from './websocket.ts'
 import type { HeaderInfo } from '@libp2p/http-utils'
 import type { AbortOptions, Stream } from '@libp2p/interface'
 
-export function toBytes (data: string | Blob | Uint8Array | ArrayBuffer | DataView): Uint8Array | Promise<Uint8Array> {
-  if (data instanceof Uint8Array || data instanceof ArrayBuffer || data instanceof DataView) {
+export function toBytes (data: string | Blob | BufferSource): Uint8Array | Promise<Uint8Array> {
+  if (data instanceof ArrayBuffer) {
     return toUint8Array(data)
+  }
+
+  if (ArrayBuffer.isView(data)) {
+    return new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
   }
 
   if (typeof data === 'string') {

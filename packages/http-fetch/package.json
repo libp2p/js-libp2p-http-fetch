@@ -1,6 +1,6 @@
 {
   "name": "@libp2p/http-fetch",
-  "version": "4.0.1",
+  "version": "4.0.3",
   "description": "libp2p-compatible implementation of the fetch API",
   "license": "Apache-2.0 OR MIT",
   "homepage": "https://github.com/libp2p/js-libp2p-http/tree/main/packages/http-fetch#readme",
@@ -142,11 +142,11 @@
     "@achingbrain/http-parser-js": "^0.5.9",
     "@libp2p/http-utils": "^2.0.0",
     "@libp2p/interface": "^3.2.0",
-    "uint8arrays": "^5.1.0"
+    "uint8arrays": "^6.1.1"
   },
   "devDependencies": {
     "@libp2p/utils": "^7.0.15",
-    "aegir": "^47.1.5"
+    "aegir": "^48.0.11"
   },
   "sideEffects": false
 }

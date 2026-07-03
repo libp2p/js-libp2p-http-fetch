@@ -1,4 +1,3 @@
-/* eslint-env mocha */
 /* eslint-disable max-nested-callbacks */
 
 import { noise } from '@chainsafe/libp2p-noise'

@@ -43,5 +43,5 @@
  * ```
  */
 
-export { fetchServer } from './fetch-server.js'
-export { nodeServer } from './node-server.js'
+export { fetchServer } from './fetch-server.ts'
+export { nodeServer } from './node-server.ts'

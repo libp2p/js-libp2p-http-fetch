@@ -24,17 +24,17 @@
  * for how you can use this in your applications!
  */
 
-import { HTTP as HTTPClass } from './http.js'
-import type { WEBSOCKET_HANDLER } from './constants.js'
-import type { HTTPComponents } from './http.js'
+import { HTTP as HTTPClass } from './http.ts'
+import type { WEBSOCKET_HANDLER } from './constants.ts'
+import type { HTTPComponents } from './http.ts'
 import type { HeaderInfo, MiddlewareOptions, Middleware } from '@libp2p/http-utils'
 import type { AbortOptions, Connection, PeerId, Stream } from '@libp2p/interface'
 import type { Multiaddr } from '@multiformats/multiaddr'
 import type { Agent, AgentOptions, IncomingMessage } from 'node:http'
 import type { Dispatcher, Agent as UndiciAgent } from 'undici'
 
-export { WELL_KNOWN_PROTOCOLS_PATH } from './routes/well-known.js'
-export { HTTP_PROTOCOL } from './constants.js'
+export { WELL_KNOWN_PROTOCOLS_PATH } from './routes/well-known.ts'
+export { HTTP_PROTOCOL } from './constants.ts'
 
 /**
  * Options used to control Fetch request and the initial WebSocket upgrade
@@ -340,5 +340,5 @@ export function http (init: HTTPInit = {}): (components: HTTPComponents) => HTTP
   return (components) => new HTTPClass(components, init)
 }
 
-export { authenticatedRoute, authenticatedWebSocketRoute } from './routes/peer-id-auth.js'
-export { webSocketRoute } from './routes/websocket.js'
+export { authenticatedRoute, authenticatedWebSocketRoute } from './routes/peer-id-auth.ts'
+export { webSocketRoute } from './routes/websocket.ts'

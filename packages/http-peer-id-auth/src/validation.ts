@@ -1,5 +1,5 @@
 import { InvalidMessageError } from '@libp2p/interface'
-import type { OpaqueUnwrapped } from './utils.js'
+import type { OpaqueUnwrapped } from './utils.ts'
 
 export function validateOpaqueData (opaque: OpaqueUnwrapped, hostname: string, tokenTTL: number): void {
   if (opaque.hostname !== hostname) {

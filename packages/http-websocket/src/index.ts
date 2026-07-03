@@ -73,5 +73,5 @@ export interface WebSocketInit extends AbortOptions {
   drainTimeout?: number
 }
 
-export { WebSocket, RequestWebSocket, StreamWebSocket, ServerWebSocket } from './websocket.js'
-export { CLOSE_CODES, CLOSE_MESSAGES } from './message.js'
+export { WebSocket, RequestWebSocket, StreamWebSocket, ServerWebSocket } from './websocket.ts'
+export { CLOSE_CODES, CLOSE_MESSAGES } from './message.ts'

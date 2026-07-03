@@ -1,10 +1,10 @@
-import type { IncomingMessage } from './incoming-message.js'
-import type { ConnectionEvent } from './websocket-server.js'
+import type { IncomingMessage } from './incoming-message.ts'
+import type { ConnectionEvent } from './websocket-server.ts'
 import type { TypedEventTarget } from '@libp2p/interface'
 import type { Duplex } from 'node:stream'
 
 export { createServer } from 'node:http'
-export { createWebSocketServer } from './websocket-server.js'
+export { createWebSocketServer } from './websocket-server.ts'
 
 export interface HTTPRequestHandler {
   (req: Request): Promise<Response>
@@ -23,5 +23,5 @@ export interface WebSocketServer extends TypedEventTarget<WebSocketServerEvents>
 }
 
 export type { IncomingMessage }
-export type { ServerResponse } from './server-response.js'
-export * from './handler.js'
+export type { ServerResponse } from './server-response.ts'
+export * from './handler.ts'

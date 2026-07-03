@@ -2,9 +2,9 @@ import { Agent as NodeAgent } from 'node:http'
 import { Libp2pSocket, toResource } from '@libp2p/http-utils'
 import { isPeerId } from '@libp2p/interface'
 import { Agent as UndiciAgent } from 'undici'
-import { HTTP_PROTOCOL } from './constants.js'
-import { HTTP as HTTPBrowser } from './http.browser.js'
-import type { HTTP as HTTPInterface } from './index.js'
+import { HTTP_PROTOCOL } from './constants.ts'
+import { HTTP as HTTPBrowser } from './http.browser.ts'
+import type { HTTP as HTTPInterface } from './index.ts'
 import type { AbortOptions, PeerId } from '@libp2p/interface'
 import type { ConnectionManager, Registrar } from '@libp2p/interface-internal'
 import type { Multiaddr } from '@multiformats/multiaddr'
@@ -13,7 +13,7 @@ import type { Socket, TcpNetConnectOpts } from 'node:net'
 import type { Duplex } from 'node:stream'
 import type { Dispatcher } from 'undici'
 
-export type { HTTPComponents } from './http.browser.js'
+export type { HTTPComponents } from './http.browser.ts'
 
 function createConnection (connectionManager: ConnectionManager, peer: PeerId | Multiaddr | Multiaddr[], options?: AbortOptions): Socket {
   return new Libp2pSocket(

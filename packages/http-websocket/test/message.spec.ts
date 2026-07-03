@@ -1,7 +1,7 @@
 import { expect } from 'aegir/chai'
 import { Uint8ArrayList } from 'uint8arraylist'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import { decodeMessage, encodeMessage } from '../src/message.js'
+import { decodeMessage, encodeMessage } from '../src/message.ts'
 
 describe('websocket messages', () => {
   it('should encode and decode a small message', () => {

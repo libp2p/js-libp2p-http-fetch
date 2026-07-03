@@ -1,6 +1,6 @@
 {
   "name": "@libp2p/http-peer-id-auth",
-  "version": "2.0.0",
+  "version": "2.0.2",
   "description": "An implementation of Peer ID Authentication over HTTP",
   "license": "Apache-2.0 OR MIT",
   "homepage": "https://github.com/libp2p/js-libp2p-http/tree/main/packages/http-peer-id-auth#readme",
@@ -142,11 +142,11 @@
     "@libp2p/crypto": "^5.1.15",
     "@libp2p/interface": "^3.2.0",
     "@libp2p/peer-id": "^6.0.6",
-    "uint8-varint": "^2.0.4",
-    "uint8arrays": "^5.1.0"
+    "uint8-varint": "^3.0.0",
+    "uint8arrays": "^6.1.1"
   },
   "devDependencies": {
-    "aegir": "^47.1.5"
+    "aegir": "^48.0.11"
   },
   "sideEffects": false
 }

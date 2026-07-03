@@ -1,6 +1,6 @@
 {
   "name": "@libp2p/http-server",
-  "version": "2.0.1",
+  "version": "2.0.3",
   "description": "HTTP server components",
   "license": "Apache-2.0 OR MIT",
   "homepage": "https://github.com/libp2p/js-libp2p-http/tree/main/packages/http-server#readme",
@@ -169,11 +169,11 @@
     "events": "^3.3.0",
     "race-event": "^1.6.1",
     "readable-stream": "^4.7.0",
-    "uint8arrays": "^5.1.0",
+    "uint8arrays": "^6.1.1",
     "ws": "^8.20.0"
   },
   "devDependencies": {
-    "aegir": "^47.1.5"
+    "aegir": "^48.0.11"
   },
   "browser": {
     "./dist/src/node/index.js": "./dist/src/node/index.browser.js",

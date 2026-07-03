@@ -1,9 +1,9 @@
 import { Response, isWebSocketUpgrade, normalizeMethod, getServerUpgradeHeaders } from '@libp2p/http-utils'
 import { RequestWebSocket } from '@libp2p/http-websocket'
 import { InvalidParametersError } from '@libp2p/interface'
-import { WEBSOCKET_HANDLER } from '../constants.js'
-import { initializeRoute } from './utils.js'
-import type { HTTPRoute, RouteOptions, HTTPRequestHandler, WebSocketHandler } from '../index.js'
+import { WEBSOCKET_HANDLER } from '../constants.ts'
+import { initializeRoute } from './utils.ts'
+import type { HTTPRoute, RouteOptions, HTTPRequestHandler, WebSocketHandler } from '../index.ts'
 
 export interface WebSocketRouteOptions extends RouteOptions {
   /**

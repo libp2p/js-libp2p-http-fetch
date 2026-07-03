@@ -187,7 +187,7 @@ export async function * decodeMessages (source: AsyncGenerator<Uint8Array | Uint
 
 export function encodeMessage (opcode: MESSAGE_TYPE, data?: Uint8Array, maskData?: boolean): Uint8ArrayList {
   const fin = true
-  const message = new Uint8ArrayList(
+  const message = new Uint8ArrayList<ArrayBufferLike>(
     Uint8Array.from([
       (fin ? 128 : 0) | OP_CODES[opcode]
     ])
@@ -202,7 +202,7 @@ export function encodeMessage (opcode: MESSAGE_TYPE, data?: Uint8Array, maskData
       ])
     )
   } else if (length < 65_535) {
-    const l = new Uint8ArrayList(
+    const l = new Uint8ArrayList<ArrayBufferLike>(
       new Uint8Array(3)
     )
     l.set(0, 126 | (maskData === true ? 128 : 0))
@@ -210,7 +210,7 @@ export function encodeMessage (opcode: MESSAGE_TYPE, data?: Uint8Array, maskData
 
     message.append(l)
   } else if (length < 18_446_744_073_709_552_000) {
-    const l = new Uint8ArrayList(
+    const l = new Uint8ArrayList<ArrayBufferLike>(
       new Uint8Array(9)
     )
     l.set(0, 127 | (maskData === true ? 128 : 0))

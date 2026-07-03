@@ -1,7 +1,7 @@
 import { HTTPParser } from '@achingbrain/http-parser-js'
 import { Response } from '@libp2p/http-utils'
-import { InvalidResponseError } from './errors.js'
-import type { SendRequestInit } from './index.js'
+import { InvalidResponseError } from './errors.ts'
+import type { SendRequestInit } from './index.ts'
 import type { Stream } from '@libp2p/interface'
 
 const nullBodyStatus = [101, 204, 205, 304]

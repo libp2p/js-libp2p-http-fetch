@@ -1,5 +1,5 @@
 import { normalizeUrl } from '@libp2p/http-utils'
-import { readableToReadableStream } from '../utils.js'
+import { readableToReadableStream } from '../utils.ts'
 import type { HTTP } from '@libp2p/http'
 import type { Libp2p } from '@libp2p/interface'
 import type { ServerResponse, IncomingMessage } from 'node:http'

@@ -1,4 +1,4 @@
-import { getHeaders, isWebSocketUpgrade } from './index.js'
+import { getHeaders, isWebSocketUpgrade } from './index.ts'
 
 /**
  * Extends the native Request class to be more flexible.

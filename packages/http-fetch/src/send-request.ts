@@ -1,7 +1,7 @@
 import { writeHeaders } from '@libp2p/http-utils'
 import { fromString as uint8arrayFromString } from 'uint8arrays/from-string'
-import { normalizeContent } from './utils.js'
-import type { SendRequestInit } from './index.js'
+import { normalizeContent } from './utils.ts'
+import type { SendRequestInit } from './index.ts'
 import type { Stream } from '@libp2p/interface'
 
 export async function sendRequest (stream: Stream, url: URL, init: SendRequestInit): Promise<void> {

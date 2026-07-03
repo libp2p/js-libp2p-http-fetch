@@ -18,7 +18,7 @@ import { sha1 } from 'multiformats/hashes/sha1'
 import { raceEvent } from 'race-event'
 import { Uint8ArrayList } from 'uint8arraylist'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
-import { Request } from './request.js'
+import { Request } from './request.ts'
 import type { AbortOptions, PeerId, Stream, StreamMessageEvent } from '@libp2p/interface'
 import type { Multiaddr } from '@multiformats/multiaddr'
 
@@ -54,7 +54,7 @@ export interface Middleware {
    * Called after a request is made but before the body has been read - the
    * processor may do any necessary housekeeping based on the server response
    */
-  processResponse?(resource: URL | Multiaddr[], opts: MiddlewareOptions, response: Response): void | Promise<void>
+  processResponse?(resource: URL | Multiaddr[], opts: MiddlewareOptions, response: Response): Response | void | Promise<Response | void>
 }
 
 export function toURL (resource: URL | Multiaddr[], headers: Headers): URL {
@@ -293,6 +293,16 @@ function isValidHost (host?: string): host is string {
   return host != null && host !== ''
 }
 
+function getDefaultPort (protocol: string): number {
+  switch (protocol) {
+    case 'https:': return 443
+    case 'wss:': return 443
+    case 'http:': return 80
+    case 'ws:': return 80
+    default: return 80
+  }
+}
+
 // eslint-disable-next-line complexity
 export function getHost (addresses: URL | Multiaddr[], headers: Headers): string {
   let host: string | undefined
@@ -300,8 +310,8 @@ export function getHost (addresses: URL | Multiaddr[], headers: Headers): string
   let protocol = 'http:'
 
   if (addresses instanceof URL) {
+    port = addresses.port === '' ? getDefaultPort(addresses.protocol) : parseInt(addresses.port, 10)
     host = addresses.hostname
-    port = parseInt(addresses.port, 10)
     protocol = addresses.protocol
   }
 
@@ -362,11 +372,7 @@ export function getHost (addresses: URL | Multiaddr[], headers: Headers): string
 
   if (isValidHost(host)) {
     // add port if not standard
-    if (protocol === 'http:' && port !== 80) {
-      host = `${host}:${port}`
-    }
-
-    if (protocol === 'https:' && port !== 443) {
+    if (port !== getDefaultPort(protocol)) {
       host = `${host}:${port}`
     }
 
@@ -561,7 +567,7 @@ export interface HeaderInfo {
   raw: Uint8ArrayList
 }
 
-export * from './request.js'
-export * from './response.js'
-export * from './constants.js'
-export * from './stream-to-socket.js'
+export * from './request.ts'
+export * from './response.ts'
+export * from './constants.ts'
+export * from './stream-to-socket.ts'

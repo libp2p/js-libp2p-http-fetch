@@ -8,11 +8,11 @@
 import { publicKeyToProtobuf } from '@libp2p/crypto/keys'
 import { InvalidMessageError } from '@libp2p/interface'
 import { toString as uint8ArrayToString } from 'uint8arrays'
-import { isClientChallenge, isOpaqueData, isServerChallengeResponse, issueBearerToken, respondToClientChallenge, respondToServerChallengeResponse, unwrapBearerToken } from './server.js'
-import { decodeAuthorizationHeader, encodeAuthParams, generateChallenge, genOpaque } from './utils.js'
+import { isClientChallenge, isOpaqueData, isServerChallengeResponse, issueBearerToken, respondToClientChallenge, respondToServerChallengeResponse, unwrapBearerToken } from './server.ts'
+import { decodeAuthorizationHeader, encodeAuthParams, generateChallenge, genOpaque } from './utils.ts'
 import type { AbortOptions, PeerId, PrivateKey } from '@libp2p/interface'
 
-export * from './errors.js'
+export * from './errors.ts'
 
 export const PEER_ID_AUTH_SCHEME = 'libp2p-PeerID'
 export const HTTP_PEER_ID_AUTH_PROTOCOL = '/http-peer-id-auth/1.0.0'
@@ -149,4 +149,4 @@ export async function serverResponds (authHeader: string, hostname: string, serv
   throw new InvalidMessageError('Client sent invalid message')
 }
 
-export { ClientInitiatedHandshake, ServerInitiatedHandshake } from './client.js'
+export { ClientInitiatedHandshake, ServerInitiatedHandshake } from './client.ts'

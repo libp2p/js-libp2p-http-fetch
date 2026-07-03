@@ -18,9 +18,9 @@ are most familiar with.
 
 These examples start a HTTP server and then pass incoming requests to libp2p.
 
-- [libp2p over http.Server]('./libp2p-over-http-server)
+- [libp2p over http.Server](./libp2p-over-http-server)
 
 ## Other features
 
-- [PeerID authentication]('./peer-id-auth)
-- [Serving websites from browsers]('./serving-websites-from-browsers)
+- [PeerID authentication](./peer-id-auth)
+- [Serving websites from browsers](./serving-websites-from-browsers)

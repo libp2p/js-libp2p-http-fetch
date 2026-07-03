@@ -6,6 +6,7 @@ import { http } from '@libp2p/http'
 import { tcp } from '@libp2p/tcp'
 import { multiaddr } from '@multiformats/multiaddr'
 import { createLibp2p } from 'libp2p'
+import { fetch } from 'undici'
 
 // Take the first argument as the path of the folder to add
 const args = process.argv.slice(2)

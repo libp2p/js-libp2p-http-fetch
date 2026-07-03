@@ -1,4 +1,4 @@
-import type { HTTPRoute, HandlerRoute, ServiceRoute } from '../index.js'
+import type { HTTPRoute, HandlerRoute, ServiceRoute } from '../index.ts'
 
 /**
  * Returns true if the passed route requires initialization

@@ -2,8 +2,8 @@ import { INTERNAL_SERVER_ERROR } from '@libp2p/http-utils'
 import { ServerWebSocket } from '@libp2p/http-websocket'
 import { TypedEventEmitter } from '@libp2p/interface'
 import { raceEvent } from 'race-event'
-import type { IncomingMessage } from './incoming-message.js'
-import type { WebSocketServerEvents, WebSocketServer as WebSocketServerInterface } from './index.js'
+import type { IncomingMessage } from './incoming-message.ts'
+import type { WebSocketServerEvents, WebSocketServer as WebSocketServerInterface } from './index.ts'
 import type { Duplex } from 'node:stream'
 
 const DEFAULT_UPGRADE_TIMEOUT = 10_000

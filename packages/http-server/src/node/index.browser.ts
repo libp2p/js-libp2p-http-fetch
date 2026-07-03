@@ -1,8 +1,8 @@
-import { HTTPServer } from './server.js'
+import { HTTPServer } from './server.ts'
 import type { ServerOptions, RequestListener, IncomingMessage, ServerResponse, Server } from 'node:http'
 
-export { createWebSocketServer } from './websocket-server.js'
-export * from './handler.js'
+export { createWebSocketServer } from './websocket-server.ts'
+export * from './handler.ts'
 
 /**
  * Implements the same interface as `createServer` from `node:http` just without

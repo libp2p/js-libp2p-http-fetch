@@ -1,5 +1,5 @@
-import { STATUS_CODES } from './constants.js'
-import { getHeaders } from './index.js'
+import { STATUS_CODES } from './constants.ts'
+import { getHeaders } from './index.ts'
 
 /**
  * Extends the native Response class to be more flexible.
