@@ -69,10 +69,6 @@
               "release": "patch"
             },
             {
-              "type": "chore",
-              "release": "patch"
-            },
-            {
               "scope": "no-release",
               "release": false
             }
@@ -155,7 +151,7 @@
     "race-event": "^1.6.1",
     "readable-stream": "^4.7.0",
     "uint8arraylist": "^3.0.2",
-    "uint8arrays": "^5.1.0"
+    "uint8arrays": "^6.1.1"
   },
   "devDependencies": {
     "aegir": "^48.0.11"

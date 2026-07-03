@@ -69,10 +69,6 @@
               "release": "patch"
             },
             {
-              "type": "chore",
-              "release": "patch"
-            },
-            {
               "scope": "no-release",
               "release": false
             }
@@ -148,7 +144,7 @@
     "@multiformats/multiaddr": "^13.0.3",
     "race-event": "^1.6.1",
     "race-signal": "^2.0.0",
-    "uint8arrays": "^5.1.0"
+    "uint8arrays": "^6.1.1"
   },
   "devDependencies": {
     "aegir": "^48.0.11"

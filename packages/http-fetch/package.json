@@ -69,10 +69,6 @@
               "release": "patch"
             },
             {
-              "type": "chore",
-              "release": "patch"
-            },
-            {
               "scope": "no-release",
               "release": false
             }
@@ -146,7 +142,7 @@
     "@achingbrain/http-parser-js": "^0.5.9",
     "@libp2p/http-utils": "^2.0.0",
     "@libp2p/interface": "^3.2.0",
-    "uint8arrays": "^5.1.0"
+    "uint8arrays": "^6.1.1"
   },
   "devDependencies": {
     "@libp2p/utils": "^7.0.15",

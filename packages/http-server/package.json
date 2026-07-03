@@ -91,10 +91,6 @@
               "release": "patch"
             },
             {
-              "type": "chore",
-              "release": "patch"
-            },
-            {
               "scope": "no-release",
               "release": false
             }
@@ -173,7 +169,7 @@
     "events": "^3.3.0",
     "race-event": "^1.6.1",
     "readable-stream": "^4.7.0",
-    "uint8arrays": "^5.1.0",
+    "uint8arrays": "^6.1.1",
     "ws": "^8.20.0"
   },
   "devDependencies": {

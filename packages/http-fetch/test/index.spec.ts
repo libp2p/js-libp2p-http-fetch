@@ -1,5 +1,3 @@
-/* eslint-env mocha */
-
 import { readHeaders, responseToStream, streamToRequest } from '@libp2p/http-utils'
 import { streamPair } from '@libp2p/utils'
 import { expect } from 'aegir/chai'
