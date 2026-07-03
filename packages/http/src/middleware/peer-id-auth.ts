@@ -141,6 +141,9 @@ export class PeerIdAuth implements Middleware {
   processResponse (resource: URL | Multiaddr[], opts: MiddlewareOptions, response: Response): Response | void {
     const key = getCacheKey(resource, opts.headers)
     const token = this.tokens.get(key)
+
+    // Some parts of fetch responses, such as headers, may be immutable so
+    // create a replacement response when we need to change them.
     let output = response
 
     // add the remote peer id as a response header
@@ -148,7 +151,6 @@ export class PeerIdAuth implements Middleware {
       const headers = new Headers(response.headers)
       headers.set('x-libp2p-peer-id', token.peerId.toString())
 
-      // the headers property is read-only so we can't just re-assign it
       output = new Response(response.body, {
         status: response.status,
         statusText: response.statusText,

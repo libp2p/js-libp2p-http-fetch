@@ -62,12 +62,11 @@ export class Cookies implements Middleware {
     }
   }
 
-  async processResponse (resource: URL | Multiaddr[], opts: MiddlewareOptions, response: Response): Promise<void> {
+  async processResponse (resource: URL | Multiaddr[], opts: MiddlewareOptions, response: Response): Promise<Response | void> {
     const credentials = opts.credentials ?? 'same-origin'
 
     if (credentials === 'omit') {
-      removeSetCookie(response)
-      return
+      return removeSetCookie(response)
     }
 
     const origin = opts.headers.get('origin')
@@ -86,19 +85,34 @@ export class Cookies implements Middleware {
       this.cookies.set(url.hostname, cookies)
     }
 
-    removeSetCookie(response)
+    return removeSetCookie(response)
   }
 }
 
-/**
- * the fetch spec requires not exposing set-cookie to client code
- */
+// Fetch excludes these forbidden response-header names from responses exposed to callers.
+// https://fetch.spec.whatwg.org/#forbidden-response-header-name
+// https://fetch.spec.whatwg.org/#concept-filtered-response-basic
+const SET_COOKIE_HEADERS = [
+  'set-cookie',
+  'set-cookie2'
+]
+
 function removeSetCookie (response: Response): Response {
-  if (response.headers.has('set-cookie')) {
-    response.headers.delete('set-cookie')
+  if (!SET_COOKIE_HEADERS.some(header => response.headers.has(header))) {
+    return response
   }
 
-  return response
+  const headers = new Headers(response.headers)
+
+  for (const header of SET_COOKIE_HEADERS) {
+    headers.delete(header)
+  }
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  })
 }
 
 function toCookies (parsed: Record<string, string | undefined>): Cookie[] {
