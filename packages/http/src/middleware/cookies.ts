@@ -1,5 +1,5 @@
 import { toURL } from '@libp2p/http-utils'
-import { parseSetCookie } from 'cookie'
+import * as cookie from 'cookie'
 import type { Middleware, MiddlewareOptions } from '@libp2p/http-utils'
 import type { ComponentLogger, Logger } from '@libp2p/interface'
 import type { Multiaddr } from '@multiformats/multiaddr'
@@ -80,7 +80,7 @@ export class Cookies implements Middleware {
     for (const value of response.headers.getSetCookie()) {
       const cookies = [
         ...(this.cookies.get(url.hostname) ?? []),
-        ...toCookies(parseSetCookie(value))
+        ...toCookies(cookie.parse(value))
       ]
 
       this.cookies.set(url.hostname, cookies)
@@ -116,7 +116,7 @@ function removeSetCookie (response: Response): Response {
   })
 }
 
-function toCookies (parsed: SetCookie): Cookie[] {
+function toCookies (parsed: Record<string, string | undefined>): Cookie[] {
   const metadata: Omit<Cookie, 'name' | 'value'> = {}
   const output: Cookie[] = []
 

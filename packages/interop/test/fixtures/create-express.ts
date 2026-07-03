@@ -31,6 +31,7 @@ export function createExpress (server: Server, handled?: CanHandle): Server {
     res.end()
   })
   app.get('/get-cookies', (req, res) => {
+    console.info('wat', req.cookies)
     res.end(JSON.stringify(Object.entries(req.cookies).map(([key, value]) => `${key}=${value}`)))
   })
 
