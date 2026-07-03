@@ -1,6 +1,6 @@
 {
   "name": "@libp2p/http-fetch",
-  "version": "4.0.3",
+  "version": "4.0.4",
   "description": "libp2p-compatible implementation of the fetch API",
   "license": "Apache-2.0 OR MIT",
   "homepage": "https://github.com/libp2p/js-libp2p-http/tree/main/packages/http-fetch#readme",

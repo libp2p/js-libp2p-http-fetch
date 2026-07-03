@@ -1,3 +1,9 @@
+## [@libp2p/http-fetch-v4.0.4](https://github.com/libp2p/js-libp2p-http/compare/@libp2p/http-fetch-4.0.3...@libp2p/http-fetch-4.0.4) (2026-07-03)
+
+### Bug Fixes
+
+* update deps ([#142](https://github.com/libp2p/js-libp2p-http/issues/142)) ([9c9d03e](https://github.com/libp2p/js-libp2p-http/commit/9c9d03eccac6ea597aa35a28fa21d9baedb75009))
+
 ## [@libp2p/http-fetch-v4.0.3](https://github.com/libp2p/js-libp2p-http/compare/@libp2p/http-fetch-4.0.2...@libp2p/http-fetch-4.0.3) (2026-06-14)
 
 ### Trivial Changes
